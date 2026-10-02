@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-	<title>Android Search — M3 Expressive Variants</title>
+	<title>Android Native Search</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -66,7 +66,16 @@
 			font-weight: 700;
 			letter-spacing: -0.01em;
 		}
-		.page-meta p {
+		.page-meta h1 { margin-bottom: 16px; }
+		.page-meta .ctl-label { margin-bottom: 8px; }
+		.page-meta ol {
+			margin: 0;
+			padding-left: 18px;
+			display: grid;
+			gap: 8px;
+		}
+		.page-meta p,
+		.page-meta li {
 			margin: 0;
 			font-size: 13px;
 			color: var(--fg-alt);
@@ -796,9 +805,13 @@
 </head>
 <body>
 	<div class="page-meta">
-		<h1>Android Search — M3 Expressive</h1>
-		<p>Hi-fi HTML mirror of the live debug explorer (OT Kit tokens + Material 3 search). Tap the field to expand; use the controls on the right to switch search field options and toggle page elements.</p>
-		<p style="margin-top:8px">Predictive back: drag in from the left or right edge of the phone. Release past the arrow turning dark to go back (keyboard, then search); release early to cancel.</p>
+		<h1>Android Native Search</h1>
+		<div class="ctl-label">Actions</div>
+		<ol>
+			<li>Tap the field to expand.</li>
+			<li>Predictive back (Android pattern): drag in from the left or right edge of the phone. Release past the arrow turning dark to go back (keyboard, then search); release early to cancel.</li>
+			<li>Use the controls on the right to switch search field options and toggle page elements.</li>
+		</ol>
 	</div>
 
 	<div class="phone" id="phone">
