@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+	<title>Android Search — M3 Expressive Variants</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+	<style>
+		/* OT Kit diner light tokens — from otkit/src/main/res/values/colors.xml + rhythm48 */
+		:root {
+			--fg-default: #2d333f;
+			--fg-alt: #6f737b;
+			--fg-disabled: #96999f;
+			--fg-disabled-alt: #c0c1c5;
+			--fg-action: #da3743;
+			--fg-accent-blue: #4a6fde;
+			--bg-default: #ffffff;
+			--bg-inset: #f1f2f4;
+			--border-default: #d8d9db;
+			--pad-sm: 8px;   /* rhythm48_regular_gutter */
+			--pad-md: 12px;  /* rhythm48_medium_gutter */
+			--pad-lg: 16px;  /* rhythm48_large_gutter */
+			--search-h: 56px; /* M3 CollapsedHeight */
+			--location-h: 40px;
+			--radius-pill: 28px;
+			--radius-location: 8px;
+			--margin-v1: 16px;
+			--margin-v2-collapsed: 24px;
+			--margin-v2-expanded: 12px;
+			--font: "Roboto", system-ui, sans-serif;
+			--phone-w: 390px;
+			--phone-h: 844px;
+		}
+
+		* { box-sizing: border-box; }
+		html, body { height: 100%; margin: 0; }
+		[hidden] { display: none !important; }
+		input[type="search"] { -webkit-appearance: none; appearance: none; }
+		input[type="search"]::-webkit-search-cancel-button,
+		input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+		body {
+			font-family: var(--font);
+			color: var(--fg-default);
+			background: #e4e5e7;
+			height: 100vh;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: center;
+			padding: 16px;
+			gap: 40px;
+			overflow: hidden;
+		}
+
+		.page-meta,
+		.side {
+			flex: 0 1 280px;
+			min-width: 180px;
+			text-align: left;
+		}
+		.page-meta h1 {
+			margin: 0 0 4px;
+			font-size: 18px;
+			font-weight: 700;
+			letter-spacing: -0.01em;
+		}
+		.page-meta p {
+			margin: 0;
+			font-size: 13px;
+			color: var(--fg-alt);
+			line-height: 1.4;
+		}
+
+		.phone {
+			flex: 0 0 auto;
+			width: var(--phone-w);
+			height: calc(100vh - 32px);
+			background: var(--bg-default);
+			border-radius: 36px;
+			overflow: hidden;
+			border: 1px solid #c8c9cd;
+			box-shadow: 0 20px 50px rgba(45, 51, 63, 0.18);
+			position: relative;
+			display: flex;
+			flex-direction: column;
+		}
+
+		/* Edge-to-edge: status bar floats over the screen, which draws behind it */
+		.status {
+			position: absolute;
+			top: 0; left: 0; right: 0;
+			height: var(--status-h);
+			box-sizing: border-box;
+			background: transparent;
+			pointer-events: none;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0 24px;
+			font-size: 14px;
+			font-weight: 600;
+			z-index: 5;
+		}
+		.status .right { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--fg-default); }
+
+		/* Android system status bar: 24dp */
+		.phone { --status-h: 24px; }
+		.screen {
+			flex: 1;
+			min-height: 0;
+			padding-top: var(--status-h);
+			position: relative;
+			display: none;
+			flex-direction: column;
+		}
+		.screen.active { display: flex; }
+
+		/* —— Map collapsed chrome —— */
+		.map-layer {
+			position: absolute;
+			inset: 0;
+			overflow: hidden;
+			background: #e8eaed;
+			z-index: 0;
+		}
+		/* Oversized + offset so the embed's place card and controls fall outside the phone frame */
+		.map-layer iframe {
+			position: absolute;
+			left: 0;
+			top: -110px;
+			width: 100%;
+			height: calc(100% + 220px);
+			border: 0;
+			pointer-events: none;
+		}
+		.map-pin {
+			position: absolute;
+			width: 14px;
+			height: 14px;
+			border-radius: 50%;
+			background: #da3743;
+			border: 2px solid #fff;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+			transform: translate(-50%, -50%);
+		}
+		.map-pin.me {
+			width: 12px;
+			height: 12px;
+			background: #4285f4;
+			box-shadow: 0 0 0 6px rgba(66, 133, 244, 0.2);
+		}
+
+		.header {
+			position: relative;
+			z-index: 2;
+			padding-bottom: 8px;
+		}
+		.dtp-wrap {
+			display: flex;
+			justify-content: center;
+			padding: 4px 0 10px;
+			max-height: 64px;
+			transition: max-height 320ms cubic-bezier(0.2, 0, 0, 1), padding 320ms cubic-bezier(0.2, 0, 0, 1), opacity 160ms ease;
+		}
+		.dtp {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			background: var(--bg-default);
+			border-radius: 999px;
+			padding: 8px 14px;
+			font-size: 13px;
+			font-weight: 600;
+			box-shadow: 0 1px 6px rgba(45, 51, 63, 0.12);
+			border: 1px solid rgba(216, 217, 219, 0.6);
+		}
+		.dtp svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+		.search-field {
+			height: var(--search-h);
+			border-radius: var(--radius-pill);
+			display: flex;
+			align-items: center;
+			padding: 0 12px 0 4px;
+			gap: 4px;
+			cursor: text;
+			transition: margin 320ms cubic-bezier(0.2, 0, 0, 1), border-radius 320ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms ease, background 200ms ease, border-color 200ms ease;
+			background: var(--bg-default);
+			position: relative;
+		}
+		.search-field .leading {
+			width: 48px;
+			height: 48px;
+			display: grid;
+			place-items: center;
+			flex: 0 0 auto;
+			color: var(--fg-alt);
+			border: none;
+			background: transparent;
+			cursor: pointer;
+			border-radius: 50%;
+		}
+		.search-field .leading:focus-visible { outline: 2px solid var(--fg-action); }
+		.search-field input {
+			flex: 1;
+			min-width: 0;
+			border: none;
+			background: transparent;
+			font: 400 16px/1.25 var(--font);
+			color: var(--fg-default);
+			outline: none;
+			caret-color: var(--fg-action);
+		}
+		.search-field input::placeholder { color: var(--fg-disabled-alt); }
+		.search-field .clear {
+			width: 40px;
+			height: 40px;
+			border: none;
+			background: transparent;
+			color: var(--fg-alt);
+			border-radius: 50%;
+			display: none;
+			place-items: center;
+			cursor: pointer;
+		}
+		.search-field.has-text .clear { display: grid; }
+
+		/* V1 collapsed: white default field, 16dp margins (current Android SearchInput) */
+		#v1 .search-field {
+			margin: 0 var(--margin-v1);
+			box-shadow: 0 1px 3px rgba(45, 51, 63, 0.12), 0 2px 8px rgba(45, 51, 63, 0.06);
+		}
+
+		/* V2 collapsed: outlined, 24dp margins */
+		#v2 .search-field {
+			margin: 0 var(--margin-v2-collapsed);
+			border: 1px solid var(--border-default);
+			box-shadow: none;
+		}
+		#v2.expanded .search-field {
+			margin: 0 var(--margin-v2-expanded);
+		}
+
+		/* Option 1 — M3 search bar metrics: 16dp icon inset, 16dp icon→text, 48dp trailing target */
+		#v2 .search-field { padding: 0 4px; gap: 4px; }
+		#v2 .search-field .clear { width: 48px; height: 48px; }
+		#v2 .search-field .clear svg { width: 16px; height: 16px; }
+		#v2 .search-field input { padding: 0; }
+
+		.filters {
+			display: flex;
+			gap: 8px;
+			padding: 12px 16px 8px;
+			overflow-x: auto;
+			scrollbar-width: none;
+			position: relative;
+			z-index: 2;
+		}
+		.filters::-webkit-scrollbar { display: none; }
+		#v2 .filters { padding-left: var(--margin-v2-collapsed); scroll-padding-left: var(--margin-v2-collapsed); }
+		.chip {
+			flex: 0 0 auto;
+			height: 36px;
+			padding: 0 12px;
+			border-radius: 999px;
+			border: 1px solid var(--border-default);
+			background: var(--bg-default);
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 13px;
+			font-weight: 500;
+			color: var(--fg-default);
+			white-space: nowrap;
+		}
+		.chip.filter-only { width: 36px; padding: 0; justify-content: center; }
+
+		.sheet {
+			position: absolute;
+			left: 0; right: 0; bottom: 0;
+			background: var(--bg-default);
+			border-radius: 16px 16px 0 0;
+			box-shadow: 0 -4px 24px rgba(45, 51, 63, 0.1);
+			padding: 10px 16px 16px;
+			z-index: 2;
+			max-height: 38%;
+		}
+		.sheet .handle {
+			width: 36px; height: 4px;
+			border-radius: 2px;
+			background: #c8c9cd;
+			margin: 0 auto 12px;
+		}
+		.sheet h2 {
+			margin: 0 0 12px;
+			font-size: 16px;
+			font-weight: 700;
+		}
+		.rest-card {
+			display: grid;
+			grid-template-columns: 1fr 72px;
+			gap: 12px;
+			align-items: start;
+		}
+		.rest-card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+		.rest-card .meta { font-size: 13px; color: var(--fg-alt); line-height: 1.35; }
+		.rest-card .stars { color: var(--fg-action); letter-spacing: 1px; font-size: 12px; }
+		.rest-card .thumb {
+			width: 72px; height: 72px;
+			border-radius: 8px;
+			background: linear-gradient(135deg, #c4a484, #8b6914);
+		}
+		.slots { display: flex; gap: 8px; margin-top: 10px; }
+		.slot {
+			background: var(--fg-action);
+			color: #fff;
+			border: none;
+			border-radius: 4px;
+			padding: 10px 12px;
+			font-size: 13px;
+			font-weight: 500;
+			font-family: inherit;
+		}
+
+		.nav {
+			flex: 0 0 56px;
+			display: grid;
+			grid-template-columns: repeat(5, 1fr);
+			border-top: 1px solid var(--border-default);
+			background: var(--bg-default);
+			z-index: 6;
+			position: relative;
+		}
+		.nav button {
+			border: none;
+			background: transparent;
+			font-family: inherit;
+			font-size: 10px;
+			color: var(--fg-alt);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 2px;
+			padding: 6px 0;
+			cursor: pointer;
+		}
+		.nav button.active { color: var(--fg-action); font-weight: 500; }
+		.nav svg { width: 22px; height: 22px; }
+
+		/* —— Expanded search page —— */
+		.screen.expanded .map-layer,
+		.screen.expanded .filters,
+		.screen.expanded .sheet { display: none; }
+
+		.screen.expanded {
+			background: var(--bg-default);
+		}
+
+		/* Top content toggle: DTP on the focused search page only */
+		.phone.hide-top .screen.expanded .dtp-wrap {
+			max-height: 0;
+			padding-top: 0;
+			padding-bottom: 0;
+			opacity: 0;
+			overflow: hidden;
+		}
+
+		/* V1 container transform: a surface grows from the field to the full page */
+		.morph {
+			position: absolute;
+			z-index: 2;
+			background: var(--bg-default);
+			pointer-events: none;
+		}
+		.screen.morphing .sheet,
+		.screen.morphing .filters { z-index: 1; }
+		.screen.morphing .header { background: transparent; }
+		.screen.expanded.morphing { background: transparent; }
+		.screen.expanded.morphing .map-layer,
+		.screen.expanded.morphing .sheet { display: block; }
+		.screen.expanded.morphing .filters {
+			display: flex;
+			position: absolute;
+			left: 0; right: 0;
+		}
+		.screen.morphing .results { opacity: 0; }
+		/* Whole collapse = 150ms ease-in-out: 50ms content fade, then 100ms shrink */
+		.screen.morph-out .results {
+			display: flex;
+			position: absolute;
+			left: 0; right: 0; bottom: 0;
+			top: var(--results-top, 0px);
+			transition-duration: 50ms;
+		}
+		.screen.morph-out .search-field,
+		.screen.morph-out .dtp-wrap {
+			transition-duration: 100ms;
+			transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+		}
+		#v1.expanded .header {
+			padding-top: 0;
+			background: var(--bg-default);
+		}
+		#v1.expanded .search-field {
+			margin: 0;
+			border-radius: 0;
+			box-shadow: none;
+			border-bottom: 1px solid transparent;
+		}
+
+		/* V2: DTP stays; field stays outlined; margins 12dp */
+		#v2.expanded .header {
+			background: var(--bg-default);
+		}
+		#v2.expanded .search-field {
+			border: 1px solid var(--border-default);
+			border-radius: var(--radius-pill);
+		}
+		#v2.expanded .header {
+			padding-bottom: 12px;
+		}
+		/* No top content: field sits 12dp below the status bar */
+		.phone.hide-top #v1.expanded .header,
+		.phone.hide-top #v2.expanded .header {
+			padding-top: 12px;
+		}
+
+		.results {
+			display: none;
+			transition: opacity 150ms cubic-bezier(0.42, 0, 0.58, 1);
+			flex: 1;
+			min-height: 0;
+			flex-direction: column;
+			background: var(--bg-default);
+			overflow: auto;
+			padding: 0 0 8px;
+			position: relative;
+			z-index: 2;
+		}
+		.screen.expanded .results { display: flex; }
+		.results > * { flex-shrink: 0; }
+
+		.location-row {
+			margin: 8px 12px;
+			height: var(--location-h);
+			border-radius: var(--radius-location);
+			background: var(--bg-inset);
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 0 12px;
+			color: var(--fg-accent-blue);
+			font-size: 16px;
+			font-weight: 400;
+		}
+		.location-row svg { width: 18px; height: 18px; flex: 0 0 auto; }
+
+		.list-item {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 14px 16px;
+			border: none;
+			background: transparent;
+			width: 100%;
+			text-align: left;
+			font-family: inherit;
+			cursor: pointer;
+			color: var(--fg-default);
+		}
+		.list-item:active { background: var(--bg-inset); }
+		.list-item .ico {
+			width: 24px; height: 24px;
+			display: grid; place-items: center;
+			color: var(--fg-default);
+			flex: 0 0 auto;
+		}
+		.list-item .body { flex: 1; min-width: 0; }
+		.list-item .title { display: block; font-size: 16px; font-weight: 500; }
+		.list-item .sub { display: block; font-size: 13px; color: var(--fg-alt); margin-top: 2px; }
+		.list-item .thumb {
+			width: 40px; height: 40px;
+			border-radius: 6px;
+			background: linear-gradient(135deg, #b8956c, #5c4033);
+			flex: 0 0 auto;
+		}
+		.list-item .chev { color: var(--fg-disabled); }
+		.section-label {
+			padding: 16px 16px 8px;
+			font-size: 16px;
+			font-weight: 700;
+		}
+		.divider { height: 1px; background: var(--border-default); margin: 0 16px; }
+
+		/* Live suggestions while typing */
+		.suggestions { display: none; flex-direction: column; }
+		.results.searching .suggestions { display: flex; }
+		.results.searching > :not(.suggestions):not(.location-row) { display: none; }
+		.suggestion {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+			min-height: 56px;
+			padding: 0 4px 0 16px;
+			border: none;
+			background: transparent;
+			width: 100%;
+			text-align: left;
+			font: 400 16px/1.3 var(--font);
+			color: var(--fg-default);
+			cursor: pointer;
+		}
+		.suggestion:active { background: var(--bg-inset); }
+		.suggestion .lead {
+			width: 24px; height: 24px;
+			display: grid; place-items: center;
+			color: var(--fg-alt);
+			flex: 0 0 auto;
+		}
+		.suggestion .lead.thumb {
+			width: 40px; height: 40px;
+			margin: 0 -8px;
+			border-radius: 6px;
+			background: linear-gradient(135deg, #b8956c, #5c4033);
+		}
+		.suggestion .body { flex: 1; min-width: 0; padding: 8px 0; }
+		.suggestion .body b { font-weight: 700; }
+		.suggestion .sub { display: block; font-size: 13px; color: var(--fg-alt); margin-top: 2px; }
+		.suggestion .fill {
+			width: 48px; height: 48px;
+			display: grid; place-items: center;
+			color: var(--fg-alt);
+			border-radius: 50%;
+			flex: 0 0 auto;
+		}
+		.no-results { padding: 16px; font-size: 14px; color: var(--fg-alt); }
+
+		/* Android IME (Gboard light) */
+		.kb {
+			position: absolute;
+			left: 0; right: 0; bottom: 0;
+			z-index: 9;
+			background: #e9eef6;
+			transform: translateY(100%);
+			transition: transform 200ms cubic-bezier(0.3, 0, 0.8, 0.15);
+			user-select: none;
+			-webkit-user-select: none;
+			touch-action: manipulation;
+		}
+		.phone.kb-open .kb {
+			transform: translateY(0);
+			transition: transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+		}
+		.phone.kb-open .nav { display: none; }
+		.phone.kb-open .screen.active .results { margin-bottom: var(--kb-h, 0px); }
+		.kb-toolbar {
+			height: 44px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 6px;
+			color: #444746;
+		}
+		.kb-toolbar span {
+			width: 40px; height: 40px;
+			display: grid; place-items: center;
+			border-radius: 50%;
+		}
+		.kb-toolbar svg { width: 22px; height: 22px; }
+		.kb-rows {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			padding: 2px 4px 8px;
+			position: relative;
+		}
+		.kb-row { display: flex; gap: 5px; }
+		.kb-row.inset { padding: 0 18px; }
+		.kb-key {
+			flex: 1 1 0;
+			height: 46px;
+			min-width: 0;
+			border: none;
+			border-radius: 8px;
+			background: #fdfcff;
+			color: #1f1f1f;
+			font: 400 22px/1 var(--font);
+			display: grid;
+			place-items: center;
+			padding: 0;
+			cursor: pointer;
+		}
+		.kb-key:active { background: #e1e3e8; }
+		.kb-key svg { width: 22px; height: 22px; }
+		.kb-key.fn {
+			flex: 1.45 1 0;
+			background: #d3dbe5;
+			font-size: 15px;
+			font-weight: 500;
+		}
+		.kb-key.fn.on { background: #c2d0e4; color: #0b57d0; }
+		.kb-key.space { flex: 5 1 0; }
+		.kb-key.action {
+			flex: 1.45 1 0;
+			background: #0b57d0;
+			color: #fff;
+			border-radius: 23px;
+		}
+		.kb-key.action:active { background: #0842a0; }
+		.kb-pop {
+			position: absolute;
+			width: 44px;
+			height: 56px;
+			border-radius: 8px;
+			background: #fdfcff;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+			display: none;
+			place-items: center;
+			font: 400 28px/1 var(--font);
+			color: #1f1f1f;
+			pointer-events: none;
+			transform: translate(-50%, -100%);
+			z-index: 2;
+		}
+		.kb-pop.show { display: grid; }
+		.kb-sysnav {
+			height: 28px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 18px;
+			color: #444746;
+		}
+		.kb-sysnav button {
+			border: none;
+			background: transparent;
+			color: inherit;
+			padding: 0;
+			width: 28px; height: 28px;
+			display: grid; place-items: center;
+			cursor: pointer;
+		}
+		.kb-sysnav .pill { width: 108px; height: 4px; border-radius: 2px; background: #1f1f1f; opacity: 0.85; }
+
+		/* Predictive back */
+		.pb-edge {
+			position: absolute;
+			top: 0; bottom: 0;
+			width: 14px;
+			z-index: 20;
+			touch-action: none;
+			cursor: ew-resize;
+		}
+		.pb-edge.left { left: 0; }
+		.pb-edge.right { right: 0; }
+		.pb-arrow {
+			position: absolute;
+			top: 0;
+			z-index: 21;
+			width: 40px;
+			height: 40px;
+			margin-top: -20px;
+			border-radius: 20px;
+			background: #e3e3e3;
+			color: #1f1f1f;
+			box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+			display: grid;
+			place-items: center;
+			pointer-events: none;
+			opacity: 0;
+			transition: background 120ms ease, color 120ms ease, scale 160ms cubic-bezier(0.2, 0, 0, 1);
+		}
+		.pb-arrow.left { left: 0; }
+		.pb-arrow.right { right: 0; }
+		.pb-arrow.right svg { transform: scaleX(-1); }
+		.pb-arrow.active { background: #1f1f1f; color: #fff; scale: 1.1; }
+		.pb-arrow.settle { transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms ease; }
+		.screen.pb-reveal { background: transparent; }
+		.screen.pb-reveal .map-layer,
+		.screen.pb-reveal .sheet { display: block; }
+		.pb-surface { overflow: hidden; will-change: transform; }
+		.pb-settle { transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), border-radius 260ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease; }
+
+		/* Prototype controls (outside the device) */
+		.side {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+			max-height: calc(100vh - 32px);
+			overflow: auto;
+		}
+		.controls {
+			background: var(--bg-default);
+			border: 1px solid var(--border-default);
+			border-radius: 12px;
+			padding: 16px;
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+		}
+		.ctl-group { display: flex; flex-direction: column; gap: 8px; }
+		.ctl-label {
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			color: var(--fg-alt);
+		}
+		.ctl-option {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			width: 100%;
+			text-align: left;
+			padding: 10px 12px;
+			border: 1px solid var(--border-default);
+			border-radius: 8px;
+			background: var(--bg-default);
+			font-family: inherit;
+			cursor: pointer;
+		}
+		.ctl-option:hover { border-color: var(--fg-alt); }
+		.ctl-option .radio {
+			width: 18px; height: 18px;
+			border-radius: 50%;
+			border: 2px solid var(--fg-alt);
+			flex: 0 0 auto;
+			display: grid; place-items: center;
+		}
+		.ctl-option[aria-checked="true"] { border-color: var(--fg-default); box-shadow: inset 0 0 0 1px var(--fg-default); }
+		.ctl-option[aria-checked="true"] .radio { border-color: var(--fg-action); }
+		.ctl-option[aria-checked="true"] .radio::after {
+			content: "";
+			width: 8px; height: 8px;
+			border-radius: 50%;
+			background: var(--fg-action);
+		}
+		.ctl-option .t { display: block; font-size: 14px; font-weight: 600; color: var(--fg-default); }
+		.ctl-option .n { display: block; font-size: 12px; color: var(--fg-alt); margin-top: 2px; }
+		.ctl-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			padding: 6px 0;
+			font-size: 14px;
+			font-weight: 500;
+			color: var(--fg-default);
+			cursor: pointer;
+		}
+		.ctl-toggle .n { display: block; font-size: 12px; font-weight: 400; color: var(--fg-alt); margin-top: 2px; }
+		.switch {
+			position: relative;
+			width: 44px;
+			height: 24px;
+			flex: 0 0 auto;
+			border: none;
+			border-radius: 12px;
+			background: var(--border-default);
+			cursor: pointer;
+			padding: 0;
+			transition: background 150ms ease;
+		}
+		.switch::after {
+			content: "";
+			position: absolute;
+			top: 3px; left: 3px;
+			width: 18px; height: 18px;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow: 0 1px 2px rgba(45, 51, 63, 0.3);
+			transition: transform 150ms cubic-bezier(0.2, 0, 0, 1);
+		}
+		.switch[aria-checked="true"] { background: var(--fg-action); }
+		.switch[aria-checked="true"]::after { transform: translateX(20px); }
+		.switch:focus-visible, .ctl-option:focus-visible { outline: 2px solid var(--fg-accent-blue); outline-offset: 2px; }
+
+		/* Page element toggles */
+		.hint {
+			margin: 0;
+			font-size: 12px;
+			color: var(--fg-alt);
+			line-height: 1.45;
+		}
+		.hint code {
+			font-size: 11px;
+			background: #fff;
+			padding: 1px 5px;
+			border-radius: 4px;
+			border: 1px solid var(--border-default);
+		}
+	</style>
+</head>
+<body>
+	<div class="page-meta">
+		<h1>Android Search — M3 Expressive</h1>
+		<p>Hi-fi HTML mirror of the live debug explorer (OT Kit tokens + Material 3 search). Tap the field to expand; use the controls on the right to switch search field options and toggle page elements.</p>
+		<p style="margin-top:8px">Predictive back: drag in from the left or right edge of the phone. Release past the arrow turning dark to go back (keyboard, then search); release early to cancel.</p>
+	</div>
+
+	<div class="phone" id="phone">
+		<div class="status">
+			<span>10:26</span>
+			<span class="right">
+				<span>5G</span>
+				<svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><rect x="0" y="8" width="3" height="4" fill="#2d333f"/><rect x="4" y="5" width="3" height="7" fill="#2d333f"/><rect x="8" y="3" width="3" height="9" fill="#2d333f"/><rect x="12" y="0" width="3" height="12" fill="#c0c1c5"/></svg>
+			</span>
+		</div>
+
+		<!-- ========== VARIANT 1: M3 map field (contained expressive) ========== -->
+		<section class="screen active" id="v1" data-variant="v1" data-transition="container">
+			<div class="map-layer">
+				<iframe src="https://maps.google.com/maps?ll=37.3894,-122.0819&amp;z=13&amp;output=embed" referrerpolicy="no-referrer-when-downgrade" title="Google Map" tabindex="-1"></iframe>
+				<span class="map-pin" style="left:28%;top:42%"></span>
+				<span class="map-pin" style="left:48%;top:38%"></span>
+				<span class="map-pin" style="left:55%;top:55%"></span>
+				<span class="map-pin" style="left:72%;top:50%"></span>
+				<span class="map-pin" style="left:40%;top:58%"></span>
+				<span class="map-pin me" style="left:62%;top:48%"></span>
+			</div>
+			<div class="header">
+				<div class="dtp-wrap">
+					<div class="dtp">
+						<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+						2 · Tonight at 7:00 PM
+					</div>
+				</div>
+				<div class="search-field" data-role="field">
+					<button type="button" class="leading" data-role="leading" aria-label="Search">
+						<svg class="ico-search" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M4.93 14.828a7 7 0 1 1 10.556-.757l3.939 3.94a.5.5 0 0 1 0 .707l-.707.707a.5.5 0 0 1-.707 0l-3.94-3.94a7.002 7.002 0 0 1-9.142-.657Zm1.413-8.485a5 5 0 1 0 7.071 7.071 5 5 0 0 0-7.07-7.07Z"/></svg>
+						<svg class="ico-back" hidden width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.303 6.353a.5.5 0 0 1 .707 0l.707.708a.5.5 0 0 1 0 .707l-3.889 3.889 3.89 3.889a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0l-4.95-4.95a.5.5 0 0 1 0-.707l4.95-4.95Z"/></svg>
+					</button>
+					<input type="search" placeholder="Search for places" enterkeyhint="search" data-role="input" />
+					<button type="button" class="clear" data-role="clear" aria-label="Clear">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m17.303 5.99.707.707a.5.5 0 0 1 0 .707L13.415 12l4.597 4.596a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0L12 13.415l-4.596 4.597a.5.5 0 0 1-.707 0l-.707-.708a.5.5 0 0 1 0-.707L10.586 12 5.99 7.404a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707 0L12 10.586l4.596-4.596a.5.5 0 0 1 .707 0Z"/></svg>
+					</button>
+				</div>
+			</div>
+			<div class="filters">
+				<span class="chip filter-only" aria-hidden="true">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+				</span>
+				<span class="chip">♡ Romantic</span>
+				<span class="chip">🍝 Italian</span>
+				<span class="chip">🥐 Brunch</span>
+				<span class="chip">🌮 Mexican</span>
+			</div>
+			<div class="sheet">
+				<div class="handle"></div>
+				<h2>364 restaurants nearby</h2>
+				<div class="rest-card">
+					<div>
+						<h3>Cucina Venti</h3>
+						<div class="meta"><span class="stars">★★★★★</span> 1,754 reviews</div>
+						<div class="meta">0.6 mi · Mountain View</div>
+						<div class="meta">$$$ · Italian</div>
+						<div class="slots">
+							<button type="button" class="slot">6:30 PM</button>
+							<button type="button" class="slot">7:00 PM</button>
+							<button type="button" class="slot">7:30 PM</button>
+						</div>
+					</div>
+					<div class="thumb" aria-hidden="true"></div>
+				</div>
+			</div>
+			<div class="results" data-role="results">
+				<div class="location-row">
+					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+					Mountain View
+				</div>
+				<button type="button" class="list-item" data-role="pick">
+					<span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg></span>
+					<span class="body"><span class="title">All Restaurants</span></span>
+				</button>
+				<div class="divider"></div>
+				<div class="section-label">Recently viewed</div>
+				<button type="button" class="list-item" data-role="pick">
+					<span class="thumb" aria-hidden="true"></span>
+					<span class="body">
+						<span class="title">Tamarine Restaurant</span>
+						<span class="sub">546 University Ave, Palo Alto, CA 94301</span>
+					</span>
+					<span class="chev">›</span>
+				</button>
+			</div>
+		</section>
+
+		<!-- ========== VARIANT 2: M3 outlined expand (divided query + location) ========== -->
+		<section class="screen" id="v2" data-variant="v2">
+			<div class="map-layer">
+				<iframe src="https://maps.google.com/maps?ll=37.3894,-122.0819&amp;z=13&amp;output=embed" referrerpolicy="no-referrer-when-downgrade" title="Google Map" tabindex="-1"></iframe>
+				<span class="map-pin" style="left:28%;top:42%"></span>
+				<span class="map-pin" style="left:48%;top:38%"></span>
+				<span class="map-pin" style="left:55%;top:55%"></span>
+				<span class="map-pin" style="left:72%;top:50%"></span>
+				<span class="map-pin" style="left:40%;top:58%"></span>
+				<span class="map-pin me" style="left:62%;top:48%"></span>
+			</div>
+			<div class="header">
+				<div class="dtp-wrap">
+					<div class="dtp">
+						<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+						2 · Tonight at 7:00 PM
+					</div>
+				</div>
+				<div class="search-field" data-role="field">
+					<button type="button" class="leading" data-role="leading" aria-label="Search">
+						<svg class="ico-search" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M4.93 14.828a7 7 0 1 1 10.556-.757l3.939 3.94a.5.5 0 0 1 0 .707l-.707.707a.5.5 0 0 1-.707 0l-3.94-3.94a7.002 7.002 0 0 1-9.142-.657Zm1.413-8.485a5 5 0 1 0 7.071 7.071 5 5 0 0 0-7.07-7.07Z"/></svg>
+						<svg class="ico-back" hidden width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.303 6.353a.5.5 0 0 1 .707 0l.707.708a.5.5 0 0 1 0 .707l-3.889 3.889 3.89 3.889a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0l-4.95-4.95a.5.5 0 0 1 0-.707l4.95-4.95Z"/></svg>
+					</button>
+					<input type="search" placeholder="Search for places" enterkeyhint="search" data-role="input" />
+					<button type="button" class="clear" data-role="clear" aria-label="Clear">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m17.303 5.99.707.707a.5.5 0 0 1 0 .707L13.415 12l4.597 4.596a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0L12 13.415l-4.596 4.597a.5.5 0 0 1-.707 0l-.707-.708a.5.5 0 0 1 0-.707L10.586 12 5.99 7.404a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707 0L12 10.586l4.596-4.596a.5.5 0 0 1 .707 0Z"/></svg>
+					</button>
+				</div>
+			</div>
+			<div class="filters">
+				<span class="chip filter-only" aria-hidden="true">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+				</span>
+				<span class="chip">♡ Romantic</span>
+				<span class="chip">🍝 Italian</span>
+				<span class="chip">🥐 Brunch</span>
+				<span class="chip">🌮 Mexican</span>
+			</div>
+			<div class="sheet">
+				<div class="handle"></div>
+				<h2>364 restaurants nearby</h2>
+				<div class="rest-card">
+					<div>
+						<h3>Cucina Venti</h3>
+						<div class="meta"><span class="stars">★★★★★</span> 1,754 reviews</div>
+						<div class="meta">0.6 mi · Mountain View</div>
+						<div class="meta">$$$ · Italian</div>
+						<div class="slots">
+							<button type="button" class="slot">6:30 PM</button>
+							<button type="button" class="slot">7:00 PM</button>
+							<button type="button" class="slot">7:30 PM</button>
+						</div>
+					</div>
+					<div class="thumb" aria-hidden="true"></div>
+				</div>
+			</div>
+			<div class="results" data-role="results">
+				<!-- Divided location row under the expressive query field -->
+				<div class="location-row">
+					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+					Mountain View
+				</div>
+				<button type="button" class="list-item" data-role="pick">
+					<span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg></span>
+					<span class="body"><span class="title">All Restaurants</span></span>
+				</button>
+				<div class="divider"></div>
+				<div class="section-label">Recently viewed</div>
+				<button type="button" class="list-item" data-role="pick">
+					<span class="thumb" aria-hidden="true"></span>
+					<span class="body">
+						<span class="title">Tamarine Restaurant</span>
+						<span class="sub">546 University Ave, Palo Alto, CA 94301</span>
+					</span>
+					<span class="chev">›</span>
+				</button>
+			</div>
+		</section>
+
+		<nav class="nav" aria-label="Bottom navigation">
+			<button type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</button>
+			<button type="button" class="active"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
+			<button type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>Rewards</button>
+			<button type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>Reservations</button>
+			<button type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>Updates</button>
+		</nav>
+
+		<div class="pb-edge left" data-edge="left" aria-hidden="true"></div>
+		<div class="pb-edge right" data-edge="right" aria-hidden="true"></div>
+		<div class="pb-arrow" id="pb-arrow" aria-hidden="true">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+		</div>
+
+		<div class="kb" id="kb" aria-hidden="true">
+			<div class="kb-toolbar">
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg></span>
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg></span>
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg></span>
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span>
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></span>
+				<span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></span>
+			</div>
+			<div class="kb-rows" id="kb-rows"></div>
+			<div class="kb-sysnav">
+				<button type="button" data-kb="hide" aria-label="Hide keyboard"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></button>
+				<span class="pill"></span>
+				<button type="button" aria-label="Switch keyboard"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg></button>
+			</div>
+		</div>
+	</div>
+
+	<aside class="side" aria-label="Prototype controls">
+		<div class="controls">
+			<div class="ctl-group" role="radiogroup" aria-label="Search field">
+				<div class="ctl-label">Search field</div>
+				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v1">
+					<span class="radio" aria-hidden="true"></span>
+					<span><span class="t">Divided (baseline) search</span><span class="n">Option 2</span></span>
+				</button>
+				<button type="button" class="ctl-option" role="radio" aria-checked="false" data-switch="v2">
+					<span class="radio" aria-hidden="true"></span>
+					<span><span class="t">Expressive field</span><span class="n">Option 1</span></span>
+				</button>
+			</div>
+			<div class="ctl-group">
+				<div class="ctl-label">Page elements</div>
+				<label class="ctl-toggle">
+					<span>Top content<span class="n">Date, time &amp; party pill on focused search</span></span>
+					<button type="button" class="switch" role="switch" aria-checked="true" data-toggle="hide-top" aria-label="Top content"></button>
+				</label>
+			</div>
+		</div>
+		<p class="hint">
+			Tokens mirror Android OT Kit (<code>background.default</code>, <code>foreground.action #da3743</code>, rhythm 8/12/16).
+			Option 2 margins 16dp · Option 1 collapsed 24dp / expanded 12dp · field height 56dp.
+			Share this file as a static HTML page — no build step.
+		</p>
+	</aside>
+
+	<script>
+		const phone = document.getElementById("phone");
+
+		function activeScreen() {
+			return document.querySelector(".screen.active");
+		}
+
+		const MORPH_MS = 320;
+		const MORPH_EASE = "cubic-bezier(0.2, 0, 0, 1)";
+		const MORPH_OUT_EASE = "cubic-bezier(0.42, 0, 0.58, 1)";
+		const CLOSE_MS = 150;
+		const CLOSE_FADE_MS = 50;
+		const MORPH_OUT_MS = CLOSE_MS - CLOSE_FADE_MS;
+
+		function clearMorph(screen) {
+			screen.querySelector(".morph")?.remove();
+			screen.classList.remove("morphing", "morph-out");
+			const filters = screen.querySelector(".filters");
+			if (filters) filters.style.top = "";
+		}
+
+		// Gmail-style container transform for Option 2: the field's surface grows to the page, content fades in after
+		function morphField(screen, expanded) {
+			clearMorph(screen);
+			const field = screen.querySelector("[data-role=field]");
+			const filters = screen.querySelector(".filters");
+			const header = screen.querySelector(".header");
+			const sr = screen.getBoundingClientRect();
+			const full = { left: "0px", top: "0px", width: `${sr.width}px`, height: `${sr.height}px`, borderRadius: "0px", boxShadow: "none" };
+			const morph = document.createElement("div");
+			morph.className = "morph";
+			screen.insertBefore(morph, header);
+
+			if (expanded) {
+				const fr = field.getBoundingClientRect();
+				screen._fieldRect = {
+					left: `${fr.left - sr.left}px`,
+					top: `${fr.top - sr.top}px`,
+					width: `${fr.width}px`,
+					height: `${fr.height}px`,
+					borderRadius: "28px",
+					boxShadow: getComputedStyle(field).boxShadow,
+				};
+				screen._filtersTop = `${filters.offsetTop}px`;
+				filters.style.top = screen._filtersTop;
+				screen.classList.add("morphing", "expanded");
+				morph.animate([screen._fieldRect, full], { duration: MORPH_MS, easing: MORPH_EASE, fill: "forwards" });
+				setTimeout(() => {
+					if (!morph.isConnected) return;
+					clearMorph(screen);
+					if (screen.classList.contains("expanded")) showKb(screen.querySelector("[data-role=input]"));
+				}, MORPH_MS);
+				return;
+			}
+
+			Object.assign(morph.style, full);
+			filters.style.top = screen._filtersTop || "";
+			screen.style.setProperty("--results-top", `${screen.querySelector("[data-role=results]").offsetTop}px`);
+			screen.classList.add("morphing", "morph-out");
+			setTimeout(() => {
+				if (!morph.isConnected) return;
+				screen.classList.remove("expanded");
+				filters.style.top = "";
+				morph.animate([full, screen._fieldRect], { duration: MORPH_OUT_MS, easing: MORPH_OUT_EASE, fill: "forwards" });
+				setTimeout(() => { if (morph.isConnected) clearMorph(screen); }, MORPH_OUT_MS);
+			}, CLOSE_FADE_MS);
+		}
+
+		function setExpanded(screen, expanded, { instant = false } = {}) {
+			const was = screen.classList.contains("expanded");
+			if (!instant && was !== expanded && screen.dataset.transition === "container") {
+				morphField(screen, expanded);
+			} else if (instant || was !== expanded) {
+				clearMorph(screen);
+				screen.classList.toggle("expanded", expanded);
+			}
+			const field = screen.querySelector("[data-role=field]");
+			const leading = screen.querySelector("[data-role=leading]");
+			const searchIco = leading.querySelector(".ico-search");
+			const backIco = leading.querySelector(".ico-back");
+			searchIco.toggleAttribute("hidden", expanded);
+			backIco.toggleAttribute("hidden", !expanded);
+			leading.setAttribute("aria-label", expanded ? "Back" : "Search");
+			const input = screen.querySelector("[data-role=input]");
+			if (expanded) {
+				renderSuggestions(screen, input.value);
+				if (!screen.classList.contains("morphing")) showKb(input);
+				requestAnimationFrame(() => input.focus());
+			} else {
+				hideKb();
+				input.blur();
+			}
+		}
+
+		const SUGGESTIONS = [
+			{ type: "restaurant", label: "Cucina Venti", sub: "Italian · Mountain View" },
+			{ type: "restaurant", label: "Tamarine Restaurant", sub: "Vietnamese · Palo Alto" },
+			{ type: "restaurant", label: "Chez TJ", sub: "French · Mountain View" },
+			{ type: "restaurant", label: "Doppio Zero", sub: "Italian · Mountain View" },
+			{ type: "restaurant", label: "Mandaloun", sub: "Mediterranean · Redwood City" },
+			{ type: "restaurant", label: "Evvia Estiatorio", sub: "Greek · Palo Alto" },
+			{ type: "cuisine", label: "Italian" },
+			{ type: "cuisine", label: "Indian" },
+			{ type: "cuisine", label: "Mexican" },
+			{ type: "cuisine", label: "Sushi" },
+			{ type: "cuisine", label: "Steakhouse" },
+			{ type: "cuisine", label: "Brunch" },
+			{ type: "location", label: "Mountain View", sub: "California" },
+			{ type: "location", label: "Menlo Park", sub: "California" },
+			{ type: "location", label: "Palo Alto", sub: "California" },
+			{ type: "location", label: "San Jose", sub: "California" },
+		];
+		const ICON_SEARCH = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
+		const ICON_PLACE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+		const ICON_FILL = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17 15.59 7.41 6H14V4H4v10h2V7.41L15.59 17z"/></svg>';
+
+		const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+		const highlight = (label, q) => {
+			const i = label.toLowerCase().indexOf(q.toLowerCase());
+			if (i < 0) return escapeHtml(label);
+			return escapeHtml(label.slice(0, i)) + "<b>" + escapeHtml(label.slice(i, i + q.length)) + "</b>" + escapeHtml(label.slice(i + q.length));
+		};
+
+		function renderSuggestions(screen, query) {
+			const results = screen.querySelector("[data-role=results]");
+			const list = results.querySelector(".suggestions");
+			const q = query.trim();
+			results.classList.toggle("searching", q.length > 0);
+			if (!q) { list.innerHTML = ""; return; }
+			const matches = SUGGESTIONS.filter((s) => s.label.toLowerCase().includes(q.toLowerCase())).slice(0, 7);
+			if (!matches.length) {
+				list.innerHTML = `<div class="no-results">No matches for “${escapeHtml(q)}”</div>`;
+				return;
+			}
+			list.innerHTML = matches.map((s) => {
+				const lead = s.type === "restaurant"
+					? '<span class="lead thumb" aria-hidden="true"></span>'
+					: `<span class="lead">${s.type === "location" ? ICON_PLACE : ICON_SEARCH}</span>`;
+				const sub = s.sub ? `<span class="sub">${escapeHtml(s.sub)}</span>` : "";
+				const fill = s.type === "cuisine"
+					? `<span class="fill" data-fill="${escapeHtml(s.label)}" role="button" aria-label="Use ${escapeHtml(s.label)}">${ICON_FILL}</span>`
+					: "";
+				return `<button type="button" class="suggestion" data-label="${escapeHtml(s.label)}">${lead}<span class="body">${highlight(s.label, q)}${sub}</span>${fill}</button>`;
+			}).join("");
+		}
+
+		function wireScreen(screen) {
+			const field = screen.querySelector("[data-role=field]");
+			const input = screen.querySelector("[data-role=input]");
+			const leading = screen.querySelector("[data-role=leading]");
+			const clear = screen.querySelector("[data-role=clear]");
+			const results = screen.querySelector("[data-role=results]");
+
+			// Our IME replaces the device keyboard on touch devices
+			input.setAttribute("inputmode", "none");
+			input.setAttribute("autocomplete", "off");
+
+			const list = document.createElement("div");
+			list.className = "suggestions";
+			results.appendChild(list);
+
+			const syncClear = () => {
+				field.classList.toggle("has-text", input.value.trim().length > 0);
+				renderSuggestions(screen, input.value);
+			};
+			input.addEventListener("input", syncClear);
+
+			list.addEventListener("click", (e) => {
+				const fill = e.target.closest("[data-fill]");
+				if (fill) {
+					input.value = fill.dataset.fill + " ";
+					syncClear();
+					input.focus();
+					input.setSelectionRange(input.value.length, input.value.length);
+					return;
+				}
+				const item = e.target.closest(".suggestion");
+				if (!item) return;
+				input.value = item.dataset.label;
+				field.classList.add("has-text");
+				setExpanded(screen, false);
+				results.classList.remove("searching");
+			});
+
+			const expand = () => setExpanded(screen, true);
+			field.addEventListener("click", (e) => {
+				if (e.target.closest("[data-role=leading]") || e.target.closest("[data-role=clear]")) return;
+				expand();
+			});
+			input.addEventListener("focus", expand);
+
+			leading.addEventListener("click", () => {
+				if (screen.classList.contains("expanded")) {
+					setExpanded(screen, false);
+					input.value = "";
+					syncClear();
+				} else {
+					expand();
+				}
+			});
+
+			clear.addEventListener("click", () => {
+				input.value = "";
+				syncClear();
+				input.focus();
+			});
+
+			input.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					setExpanded(screen, false);
+				}
+				if (e.key === "Escape") {
+					setExpanded(screen, false);
+				}
+			});
+
+			screen.querySelectorAll("[data-role=pick]").forEach((btn) => {
+				btn.addEventListener("click", () => setExpanded(screen, false));
+			});
+		}
+
+		document.querySelectorAll(".screen").forEach(wireScreen);
+
+		// —— Android IME ——
+		const kb = document.getElementById("kb");
+		const kbRows = document.getElementById("kb-rows");
+		const kbPop = document.createElement("div");
+		kbPop.className = "kb-pop";
+		let kbTarget = null;
+		let kbLayer = "abc";
+		let kbShift = false;
+
+		const KEY_SHIFT = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 4 13h5v7h6v-7h5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+		const KEY_SHIFT_ON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 4 13h5v7h6v-7h5z"/></svg>';
+		const KEY_BKSP = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"/></svg>';
+		const KEY_SEARCH = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
+
+		const LAYERS = {
+			abc: [
+				["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+				["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+				["{shift}", "z", "x", "c", "v", "b", "n", "m", "{bksp}"],
+				["{sym}", ",", "{space}", ".", "{action}"],
+			],
+			sym: [
+				["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+				["@", "#", "$", "_", "&", "-", "+", "(", ")", "/"],
+				["{more}", "*", "\"", "'", ":", ";", "!", "?", "{bksp}"],
+				["{abc}", ",", "{space}", ".", "{action}"],
+			],
+		};
+
+		function renderKb() {
+			kbRows.innerHTML = "";
+			LAYERS[kbLayer].forEach((row, r) => {
+				const rowEl = document.createElement("div");
+				rowEl.className = "kb-row" + (kbLayer === "abc" && r === 1 ? " inset" : "");
+				row.forEach((k) => {
+					const b = document.createElement("button");
+					b.type = "button";
+					b.className = "kb-key";
+					b.tabIndex = -1;
+					b.dataset.key = k;
+					if (k === "{shift}") { b.classList.add("fn"); b.classList.toggle("on", kbShift); b.innerHTML = kbShift ? KEY_SHIFT_ON : KEY_SHIFT; b.setAttribute("aria-label", "Shift"); }
+					else if (k === "{bksp}") { b.classList.add("fn"); b.innerHTML = KEY_BKSP; b.setAttribute("aria-label", "Delete"); }
+					else if (k === "{sym}") { b.classList.add("fn"); b.textContent = "?123"; }
+					else if (k === "{abc}") { b.classList.add("fn"); b.textContent = "ABC"; }
+					else if (k === "{more}") { b.classList.add("fn"); b.textContent = "=\\<"; }
+					else if (k === "{space}") { b.classList.add("space"); b.setAttribute("aria-label", "Space"); }
+					else if (k === "{action}") { b.classList.add("action"); b.innerHTML = KEY_SEARCH; b.setAttribute("aria-label", "Search"); }
+					else { b.textContent = kbShift ? k.toUpperCase() : k; }
+					rowEl.appendChild(b);
+				});
+				kbRows.appendChild(rowEl);
+			});
+			kbRows.appendChild(kbPop);
+		}
+
+		function syncKbHeight() {
+			phone.style.setProperty("--kb-h", `${kb.offsetHeight}px`);
+		}
+
+		function showKb(input) {
+			kbTarget = input;
+			kbLayer = "abc";
+			kbShift = false;
+			renderKb();
+			phone.classList.add("kb-open");
+			kb.setAttribute("aria-hidden", "false");
+			syncKbHeight();
+		}
+
+		function hideKb() {
+			phone.classList.remove("kb-open");
+			kb.setAttribute("aria-hidden", "true");
+			kbPop.classList.remove("show");
+		}
+
+		function insertText(text) {
+			const i = kbTarget;
+			if (!i) return;
+			const s = i.selectionStart ?? i.value.length;
+			const e = i.selectionEnd ?? s;
+			i.setRangeText(text, s, e, "end");
+			i.dispatchEvent(new Event("input", { bubbles: true }));
+		}
+
+		function backspace() {
+			const i = kbTarget;
+			if (!i) return;
+			const s = i.selectionStart ?? i.value.length;
+			const e = i.selectionEnd ?? s;
+			if (s !== e) i.setRangeText("", s, e, "end");
+			else if (s > 0) i.setRangeText("", s - 1, s, "end");
+			i.dispatchEvent(new Event("input", { bubbles: true }));
+		}
+
+		// Keep focus (and the caret) in the search field while tapping keys
+		kb.addEventListener("pointerdown", (e) => {
+			e.preventDefault();
+			const key = e.target.closest(".kb-key");
+			if (!key || key.classList.contains("fn") || key.classList.contains("space") || key.classList.contains("action")) return;
+			const kr = key.getBoundingClientRect();
+			const rr = kbRows.getBoundingClientRect();
+			kbPop.textContent = key.textContent;
+			kbPop.style.left = `${kr.left - rr.left + kr.width / 2}px`;
+			kbPop.style.top = `${kr.top - rr.top - 4}px`;
+			kbPop.classList.add("show");
+		});
+		const hidePop = () => kbPop.classList.remove("show");
+		kb.addEventListener("pointerup", hidePop);
+		kb.addEventListener("pointerleave", hidePop);
+		kb.addEventListener("pointercancel", hidePop);
+
+		kb.addEventListener("click", (e) => {
+			if (e.target.closest("[data-kb=hide]")) {
+				hideKb();
+				kbTarget?.blur();
+				return;
+			}
+			const key = e.target.closest(".kb-key");
+			if (!key || !kbTarget) return;
+			const k = key.dataset.key;
+			switch (k) {
+				case "{shift}": kbShift = !kbShift; renderKb(); return;
+				case "{bksp}": backspace(); return;
+				case "{sym}": case "{more}": kbLayer = "sym"; renderKb(); return;
+				case "{abc}": kbLayer = "abc"; renderKb(); return;
+				case "{space}": insertText(" "); return;
+				case "{action}": {
+					const screen = kbTarget.closest(".screen");
+					setExpanded(screen, false);
+					screen.querySelector("[data-role=results]").classList.remove("searching");
+					return;
+				}
+				default:
+					insertText(kbShift ? k.toUpperCase() : k);
+					if (kbShift) { kbShift = false; renderKb(); }
+			}
+		});
+
+		renderKb();
+
+		// —— Predictive back (Android 14+) ——
+		// M3 in-app spec: surface scales to 90%, shifts ≤8dp with the swipe, corners round up to 28dp.
+		const pbArrow = document.getElementById("pb-arrow");
+		const PB_COMMIT_PX = 96;
+		const PB_FULL_PX = 260;
+		let pb = null;
+
+		function backTarget() {
+			if (phone.classList.contains("kb-open")) return "ime";
+			return activeScreen().classList.contains("expanded") ? "search" : "none";
+		}
+
+		function collapseSearch(screen) {
+			const input = screen.querySelector("[data-role=input]");
+			setExpanded(screen, false, { instant: true });
+			input.value = "";
+			screen.querySelector("[data-role=field]").classList.remove("has-text");
+			renderSuggestions(screen, "");
+		}
+
+		function pbSurfaces(target, screen) {
+			if (target === "search") {
+				screen.classList.add("pb-reveal");
+				const w = screen.offsetWidth;
+				const h = screen.offsetHeight;
+				return [screen.querySelector(".header"), screen.querySelector("[data-role=results]")].map((el, i) => {
+					el.classList.add("pb-surface");
+					return { el, ox: w / 2 - el.offsetLeft, oy: h / 2 - el.offsetTop, corners: i === 0 ? "top" : "bottom" };
+				});
+			}
+			return [];
+		}
+
+		function pbApply(p, dy) {
+			const dir = pb.edge === "left" ? 1 : -1;
+			const scale = 1 - 0.1 * p;
+			const tx = dir * 8 * p;
+			const maxY = phone.offsetHeight / 20 - 8;
+			const ty = Math.max(-maxY, Math.min(maxY, dy * 0.1)) * p;
+			const r = `${28 * p}px`;
+			pb.surfaces.forEach(({ el, ox, oy, corners }) => {
+				el.style.transformOrigin = `${ox}px ${oy}px`;
+				el.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+				el.style.borderRadius = corners === "top" ? `${r} ${r} 0 0` : corners === "bottom" ? `0 0 ${r} ${r}` : r;
+			});
+			if (pb.target === "ime") {
+				kb.style.transition = "none";
+				kb.style.transform = `translateY(${p * 40}%)`;
+			}
+		}
+
+		function pbCleanup() {
+			pb?.surfaces.forEach(({ el }) => {
+				el.classList.remove("pb-surface", "pb-settle");
+				el.style.transform = el.style.transformOrigin = el.style.borderRadius = el.style.opacity = "";
+			});
+			document.querySelectorAll(".pb-reveal").forEach((s) => s.classList.remove("pb-reveal"));
+			pb = null;
+		}
+
+		function pbArrowUpdate(dx, y) {
+			pbArrow.classList.remove("settle");
+			pbArrow.classList.toggle("left", pb.edge === "left");
+			pbArrow.classList.toggle("right", pb.edge === "right");
+			const travel = Math.min(dx * 0.45, 56) - 40;
+			pbArrow.style.top = `${y}px`;
+			pbArrow.style.transform = `translateX(${pb.edge === "left" ? travel : -travel}px)`;
+			pbArrow.style.opacity = String(Math.min(1, dx / 40));
+			pbArrow.classList.toggle("active", dx >= PB_COMMIT_PX);
+		}
+
+		function pbArrowHide() {
+			pbArrow.classList.add("settle");
+			pbArrow.classList.remove("active");
+			pbArrow.style.transform = `translateX(${pbArrow.classList.contains("left") ? -40 : 40}px)`;
+			pbArrow.style.opacity = "0";
+		}
+
+		function pbForwardTap(edgeEl, x, y) {
+			edgeEl.style.pointerEvents = "none";
+			const hit = document.elementFromPoint(x, y);
+			edgeEl.style.pointerEvents = "";
+			if (!hit) return;
+			const target = hit.closest("input, button, [role=button], [data-role=field]") || hit;
+			if (target.matches("input")) target.focus();
+			else if (typeof target.click === "function") target.click();
+		}
+
+		document.querySelectorAll(".pb-edge").forEach((edgeEl) => {
+			edgeEl.addEventListener("pointerdown", (e) => {
+				e.preventDefault();
+				try { edgeEl.setPointerCapture(e.pointerId); } catch {}
+				const rect = phone.getBoundingClientRect();
+				pb = { edge: edgeEl.dataset.edge, x0: e.clientX, y0: e.clientY, rectTop: rect.top, moved: false, target: null, screen: null, surfaces: [] };
+			});
+
+			edgeEl.addEventListener("pointermove", (e) => {
+				if (!pb) return;
+				const dx = Math.max(0, pb.edge === "left" ? e.clientX - pb.x0 : pb.x0 - e.clientX);
+				if (!pb.moved) {
+					if (dx < 6) return;
+					pb.moved = true;
+					pb.target = backTarget();
+					pb.screen = activeScreen();
+					pb.surfaces = pbSurfaces(pb.target, pb.screen);
+				}
+				const p = Math.min(1, dx / PB_FULL_PX);
+				pbArrowUpdate(dx, e.clientY - pb.rectTop);
+				if (pb.target !== "none") pbApply(p, e.clientY - pb.y0);
+			});
+
+			const end = (e, cancelled) => {
+				if (!pb) return;
+				if (!pb.moved) {
+					const { x0, y0 } = pb;
+					pb = null;
+					if (!cancelled) pbForwardTap(edgeEl, x0, y0);
+					return;
+				}
+				const dx = Math.max(0, pb.edge === "left" ? e.clientX - pb.x0 : pb.x0 - e.clientX);
+				const commit = !cancelled && dx >= PB_COMMIT_PX && pb.target !== "none";
+				const { target, screen, surfaces } = pb;
+				pbArrowHide();
+
+				if (target === "ime") {
+					kb.style.transition = "";
+					kb.style.transform = "";
+					if (commit) { hideKb(); kbTarget?.blur(); }
+					pbCleanup();
+					return;
+				}
+
+				surfaces.forEach(({ el }) => el.classList.add("pb-settle"));
+				if (commit) {
+					surfaces.forEach(({ el }) => { el.style.opacity = "0"; });
+					setTimeout(() => {
+						collapseSearch(screen);
+						pbCleanup();
+					}, 180);
+				} else {
+					surfaces.forEach(({ el }) => {
+						el.style.transform = "";
+						el.style.borderRadius = "";
+					});
+					setTimeout(pbCleanup, 270);
+				}
+			};
+			edgeEl.addEventListener("pointerup", (e) => end(e, false));
+			edgeEl.addEventListener("pointercancel", (e) => end(e, true));
+		});
+
+		// —— Prototype controls ——
+		const options = document.querySelectorAll(".ctl-option[data-switch]");
+		options.forEach((btn) => {
+			btn.addEventListener("click", () => {
+				const id = btn.getAttribute("data-switch");
+				hideKb();
+				document.querySelectorAll(".screen").forEach((s) => {
+					clearMorph(s);
+					s.classList.remove("active", "expanded");
+					s.querySelector("[data-role=results]").classList.remove("searching");
+					const leading = s.querySelector("[data-role=leading]");
+					leading.querySelector(".ico-search").removeAttribute("hidden");
+					leading.querySelector(".ico-back").setAttribute("hidden", "");
+					s.querySelector("[data-role=input]").value = "";
+					s.querySelector("[data-role=field]").classList.remove("has-text");
+				});
+				document.getElementById(id).classList.add("active");
+				options.forEach((b) => b.setAttribute("aria-checked", String(b === btn)));
+			});
+		});
+
+		// Each switch hides a page element by toggling a class on the device when turned off
+		document.querySelectorAll(".switch[data-toggle]").forEach((sw) => {
+			sw.addEventListener("click", () => {
+				const on = sw.getAttribute("aria-checked") !== "true";
+				sw.setAttribute("aria-checked", String(on));
+				phone.classList.toggle(sw.dataset.toggle, !on);
+			});
+		});
+	</script>
+</body>
+</html>
