@@ -23,9 +23,9 @@
 			--pad-md: 12px;  /* rhythm48_medium_gutter */
 			--pad-lg: 16px;  /* rhythm48_large_gutter */
 			--search-h: 56px; /* M3 CollapsedHeight */
-			--location-h: 40px;
+			--location-h: 48px;
 			--radius-pill: 28px;
-			--radius-location: 8px;
+			--radius-location: 4px;
 			--margin-v1: 16px;
 			--margin-v2-collapsed: 24px;
 			--margin-v2-expanded: 12px;
@@ -411,6 +411,7 @@
 		}
 		#v1.expanded .header {
 			padding-top: 0;
+			padding-bottom: 12px;
 			background: var(--bg-default);
 		}
 		#v1.expanded .search-field {
@@ -452,20 +453,22 @@
 		.screen.expanded .results { display: flex; }
 		.results > * { flex-shrink: 0; }
 
+		/* OT Kit TextInput (Android): 48dp, background.default, 1dp border.default, shapes.small 4dp, 8dp h-padding */
 		.location-row {
-			margin: 8px 12px;
+			margin: 0 12px 8px;
 			height: var(--location-h);
 			border-radius: var(--radius-location);
-			background: var(--bg-inset);
+			background: var(--bg-default);
+			border: 1px solid var(--border-default);
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			padding: 0 12px;
-			color: var(--fg-accent-blue);
-			font-size: 16px;
-			font-weight: 400;
+			padding: 0 8px;
+			color: var(--fg-default);
+			font: 400 16px/24px var(--font);
 		}
-		.location-row svg { width: 18px; height: 18px; flex: 0 0 auto; }
+		.location-row svg { width: 24px; height: 24px; flex: 0 0 auto; color: var(--fg-alt); }
+		#v2 .location-row { border-radius: 999px; padding: 0 16px; }
 
 		.list-item {
 			display: flex;
@@ -881,7 +884,7 @@
 			</div>
 			<div class="results" data-role="results">
 				<div class="location-row">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+					<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm1 3a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z"/><path d="M4 10a8 8 0 1 1 16 0c0 2.813-2.433 6.59-7.3 11.33a1 1 0 0 1-1.4 0C6.433 16.59 4 12.813 4 10Zm14 0a6 6 0 0 0-12 0c0 1.21.8 4 6 9.21 5.2-5.21 6-8 6-9.21Z"/></svg>
 					Mountain View
 				</div>
 				<button type="button" class="list-item" data-role="pick">
@@ -960,7 +963,7 @@
 			<div class="results" data-role="results">
 				<!-- Divided location row under the expressive query field -->
 				<div class="location-row">
-					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+					<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm1 3a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z"/><path d="M4 10a8 8 0 1 1 16 0c0 2.813-2.433 6.59-7.3 11.33a1 1 0 0 1-1.4 0C6.433 16.59 4 12.813 4 10Zm14 0a6 6 0 0 0-12 0c0 1.21.8 4 6 9.21 5.2-5.21 6-8 6-9.21Z"/></svg>
 					Mountain View
 				</div>
 				<button type="button" class="list-item" data-role="pick">
