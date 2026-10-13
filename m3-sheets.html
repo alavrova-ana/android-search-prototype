@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Android bottom sheets: Current vs M3</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+	<style>
+		/* OT Kit diner light tokens, from otkit/src/main/res/values/colors.xml and dimens.xml */
+		:root {
+			--fg-default: #2d333f;
+			--fg-alt: #6f737b;
+			--fg-disabled: #96999f;
+			--fg-action: #da3743;
+			--fg-link: #da3743;
+			--fg-on-action: #ffffff;
+			--bg-default: #ffffff;
+			--bg-inset: #f1f2f4;
+			--bg-action: #da3743;
+			--bg-hover: rgba(0, 0, 0, 0.04);
+			--border-default: #d8d9db;
+			--border-divider: #d8d9db;
+			--padding-xxsmall: 4px;
+			--padding-xsmall: 6px;
+			--padding-small: 8px;
+			--padding-medium-small: 12px;
+			--padding-medium: 16px;
+			--padding-medium-large: 24px;
+			--padding-large: 32px;
+			--radius-small: 4px;
+			--radius-medium: 8px;
+			--radius-large: 16px;
+			--radius-rounded: 99999px;
+			/* Android uses Brandon Text for titles and buttons; it falls back to Roboto where Brandon is not installed */
+			--font-brand: "BrandonText", "Brandon Text", "Roboto", system-ui, sans-serif;
+			--font-body: "Roboto", system-ui, sans-serif;
+			--phone-w: 412px;
+			--phone-h: 915px;
+			--status-h: 32px;
+			--nav-h: 24px;
+		}
+
+		* { box-sizing: border-box; }
+		html, body { margin: 0; height: 100%; }
+		body {
+			font: 400 14px/20px var(--font-body);
+			color: var(--fg-default);
+			background: #e4e5e7;
+			display: flex;
+			gap: var(--padding-medium-large);
+			padding: var(--padding-medium-large);
+			overflow: hidden;
+		}
+		button { font: inherit; color: inherit; }
+
+		/* —— Controller panel —— */
+		.panel {
+			flex: 0 0 372px;
+			align-self: flex-start;
+			max-height: 100%;
+			overflow-y: auto;
+			background: var(--bg-default);
+			border: 1px solid var(--border-default);
+			border-radius: var(--radius-large);
+			padding: var(--padding-medium);
+		}
+		.panel h1 { margin: 0 0 var(--padding-xxsmall); font: 700 20px/24px var(--font-brand); }
+		.panel .sub { margin: 0 0 var(--padding-medium); color: var(--fg-alt); font-size: 13px; line-height: 18px; }
+		.ctl-label { font: 600 12px/16px var(--font-body); color: var(--fg-alt); text-transform: uppercase; letter-spacing: 0.04em; margin: var(--padding-medium) 0 var(--padding-small); }
+		.seg { display: inline-flex; border: 1px solid var(--border-default); border-radius: var(--radius-rounded); padding: 2px; background: var(--bg-default); }
+		.seg button { border: none; background: transparent; border-radius: var(--radius-rounded); padding: var(--padding-xxsmall) var(--padding-medium-small); font: 500 13px/20px var(--font-body); color: var(--fg-alt); cursor: pointer; }
+		.seg button[aria-pressed="true"] { background: var(--fg-default); color: var(--fg-on-action); }
+		.card { border: 1px solid var(--border-default); border-radius: var(--radius-medium); padding: var(--padding-medium-small); margin-bottom: var(--padding-small); }
+		.card.focus { border: 2px solid var(--fg-default); padding: 11px; }
+		.card-title { font-weight: 600; }
+		.card-desc { color: var(--fg-alt); font-size: 12px; line-height: 16px; margin: 2px 0 10px; }
+		.row { display: flex; align-items: center; gap: var(--padding-small); }
+		.btn-open { margin-left: auto; border: none; border-radius: var(--radius-small); background: var(--bg-action); color: var(--fg-on-action); font: 600 13px/20px var(--font-body); padding: var(--padding-xsmall) var(--padding-medium); cursor: pointer; }
+		.compare-on .seg.style { visibility: hidden; }
+		table.spec { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
+		table.spec th, table.spec td { text-align: left; padding: var(--padding-xsmall) var(--padding-xxsmall); border-top: 1px solid var(--border-divider); vertical-align: top; }
+		table.spec th { color: var(--fg-alt); font-weight: 500; width: 24%; }
+		table.spec thead th { border-top: none; font-weight: 600; color: var(--fg-default); }
+		.foot { margin-top: var(--padding-medium); color: var(--fg-alt); font-size: 12px; line-height: 16px; }
+
+		/* —— Stage and phone frame —— */
+		.stage { flex: 1; min-width: 0; display: flex; justify-content: center; align-items: flex-start; gap: var(--padding-large); }
+		.device { display: flex; flex-direction: column; align-items: center; gap: var(--padding-small); }
+		.device[hidden] { display: none; }
+		.device-label { font: 600 13px/20px var(--font-body); color: var(--fg-default); background: var(--bg-default); border: 1px solid var(--border-default); border-radius: var(--radius-rounded); padding: 2px var(--padding-medium-small); }
+		.phone {
+			position: relative;
+			width: var(--phone-w);
+			height: var(--phone-h);
+			border-radius: 40px;
+			overflow: hidden;
+			background: var(--bg-default);
+			border: 1px solid #c8c9cd;
+			box-shadow: 0 20px 50px rgba(45, 51, 63, 0.18);
+			isolation: isolate;
+		}
+		.statusbar {
+			position: absolute; top: 0; left: 0; right: 0; height: var(--status-h);
+			display: flex; align-items: center; justify-content: space-between;
+			padding: 0 var(--padding-medium-large);
+			font: 500 14px/1 var(--font-body);
+			z-index: 30; pointer-events: none;
+		}
+		.statusbar svg { width: 16px; height: 16px; }
+		.navbar { position: absolute; left: 0; right: 0; bottom: 0; height: var(--nav-h); z-index: 30; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+		.navbar::after { content: ""; width: 108px; height: 4px; border-radius: 2px; background: var(--fg-default); opacity: 0.85; }
+		.navbar.solid { background: var(--bg-default); }
+
+		/* —— Host screens —— */
+		.host { position: absolute; inset: 0; padding: var(--status-h) 0 var(--nav-h); display: flex; flex-direction: column; overflow: hidden; }
+		.appbar { display: flex; align-items: center; gap: var(--padding-small); padding: var(--padding-small) var(--padding-medium); }
+		.appbar h2 { margin: 0; font: 700 18px/24px var(--font-brand); }
+		.icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border: none; background: none; border-radius: 50%; cursor: pointer; flex: 0 0 auto; }
+		.icon-btn svg { width: 24px; height: 24px; }
+		.searchfield { flex: 1; height: 48px; border-radius: var(--radius-rounded); background: var(--bg-inset); display: flex; align-items: center; gap: var(--padding-small); padding: 0 var(--padding-medium); font-size: 16px; color: var(--fg-default); }
+		.searchfield svg { width: 20px; height: 20px; color: var(--fg-alt); }
+		.pillrow { display: flex; gap: var(--padding-small); padding: var(--padding-xxsmall) var(--padding-medium); overflow: hidden; }
+		.pill { flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--padding-xsmall); height: 36px; padding: 0 var(--padding-medium-small); border: 1px solid var(--border-default); border-radius: var(--radius-rounded); background: var(--bg-default); font: 500 14px/20px var(--font-body); cursor: pointer; white-space: nowrap; }
+		.pill svg { width: 16px; height: 16px; }
+		.pill.on { border: 2px solid var(--fg-default); padding: 0 11px; }
+		.pill[data-open] { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0.5); animation: hint 2.4s ease-out 1s 2; }
+		@keyframes hint { 0% { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0.45); } 70% { box-shadow: 0 0 0 8px rgba(218, 55, 67, 0); } 100% { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0); } }
+		.list { flex: 1; overflow: hidden; padding: var(--padding-small) var(--padding-medium) 0; }
+		.rcard { display: flex; gap: var(--padding-medium-small); padding: var(--padding-medium-small) 0; border-bottom: 1px solid var(--border-divider); }
+		.rimg { flex: 0 0 72px; height: 72px; border-radius: var(--radius-small); background: var(--bg-inset); }
+		.rname { font: 700 16px/20px var(--font-brand); margin-bottom: 2px; }
+		.rmeta { font-size: 13px; line-height: 18px; color: var(--fg-alt); }
+		.slots { display: flex; gap: var(--padding-xsmall); margin-top: var(--padding-small); }
+		.slot { background: var(--bg-action); color: var(--fg-on-action); border-radius: var(--radius-small); font: 500 13px/1 var(--font-body); padding: 8px 10px; }
+		.section { padding: var(--padding-medium); }
+		.section h3 { margin: 0 0 var(--padding-small); font: 700 18px/24px var(--font-brand); }
+		.kv { display: flex; justify-content: space-between; align-items: center; padding: var(--padding-small) 0; font-size: 14px; }
+		.kv.link { cursor: pointer; }
+		.kv.link span:first-child { display: inline-flex; align-items: center; gap: var(--padding-xxsmall); text-decoration: underline; text-underline-offset: 3px; }
+		.kv.total { font-weight: 700; border-top: 1px solid var(--border-divider); margin-top: var(--padding-small); padding-top: var(--padding-medium-small); }
+		.host .cta { margin: auto var(--padding-medium) var(--padding-medium); min-height: 48px; border: none; border-radius: var(--radius-small); background: var(--bg-action); color: var(--fg-on-action); font: 700 18px/24px var(--font-brand); }
+		.banner { margin: var(--padding-medium); padding: var(--padding-medium); border-radius: var(--radius-medium); background: var(--bg-inset); display: flex; gap: var(--padding-medium-small); align-items: center; cursor: pointer; }
+		.banner b { display: block; font: 700 16px/20px var(--font-brand); }
+		.banner span { font-size: 13px; line-height: 18px; color: var(--fg-alt); }
+		.banner .go { margin-left: auto; flex: 0 0 auto; border: none; border-radius: var(--radius-small); background: var(--bg-action); color: var(--fg-on-action); font: 600 13px/20px var(--font-body); padding: var(--padding-xsmall) var(--padding-medium-small); cursor: pointer; }
+		.hscroll { display: flex; gap: var(--padding-medium-small); padding: 0 var(--padding-medium); overflow: hidden; }
+		.hcard { flex: 0 0 200px; }
+		.hcard .rimg { height: 120px; width: 100%; margin-bottom: var(--padding-small); }
+
+		/* —— Bottom sheet window: scrim + sheet —— */
+		.scrim { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 20; display: none; }
+		.scrim.on { display: block; }
+		.sheet {
+			position: absolute; left: 0; right: 0; margin: 0 auto; max-width: 640px;
+			z-index: 21;
+			background: var(--bg-default);
+			overflow: hidden;
+			touch-action: none;
+			will-change: transform;
+		}
+		.sheet.dragging { cursor: grabbing; }
+		.drag-handle { height: 48px; display: flex; justify-content: center; padding-top: 12px; cursor: grab; }
+		.drag-handle::before { content: ""; width: 32px; height: 4px; border-radius: 2px; background: var(--fg-alt); }
+
+		/* —— DTP: bottom_sheet_dtp_fragment.xml —— */
+		.dtp-title { margin: 32px 16px 0; font: 700 18px/24px var(--font-brand); color: var(--fg-default); }
+		.dtp-party { display: flex; overflow-x: auto; padding: 8px 8px 0; scrollbar-width: none; }
+		.dtp-party::-webkit-scrollbar { display: none; }
+		.dtp-party button { flex: 0 0 auto; min-width: 40px; height: 48px; margin: 0 6px; padding: 0 4px; border-radius: var(--radius-rounded); border: 1px solid var(--border-default); background: var(--bg-default); font: 700 16px/1 var(--font-body); color: #000; cursor: pointer; }
+		.dtp-party button[aria-checked="true"] { border: 2px solid var(--fg-action); }
+		.dtp-wheels { display: flex; gap: 16px; margin: 8px 16px 0; }
+		.dtp-wheel-wrap { position: relative; }
+		.dtp-wheel-wrap.day { flex: 1.25; }
+		.dtp-wheel-wrap.time { flex: 1; }
+		.dtp-wheel-wrap::before, .dtp-wheel-wrap::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: #333; pointer-events: none; }
+		.dtp-wheel-wrap::before { top: 80px; }
+		.dtp-wheel-wrap::after { top: 120px; }
+		.dtp-wheel { height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; cursor: grab; touch-action: pan-y; }
+		.dtp-wheel::-webkit-scrollbar { display: none; }
+		.dtp-wheel.dragging { scroll-snap-type: none; cursor: grabbing; }
+		.dtp-wheel-pad { height: 80px; }
+		.dtp-wheel-row { height: 40px; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; font: 400 16px/1 var(--font-body); color: var(--fg-default); opacity: 0.35; user-select: none; white-space: nowrap; }
+		.dtp-wheel-row.sel { opacity: 1; }
+
+		/* OT.Button.Primary.RoundCorners / OT.Button.Secondary.RoundCorners */
+		.ot-btn { display: block; width: calc(100% - 32px); min-height: 48px; margin: 16px; border-radius: var(--radius-small); font: 700 18px/24px var(--font-brand); cursor: pointer; }
+		.ot-btn.primary { border: none; background: var(--bg-action); color: var(--fg-on-action); }
+		.ot-btn.secondary { border: 1px solid var(--border-default); background: var(--bg-default); color: var(--fg-default); }
+
+		/* —— Service fees: bottom_sheet_service_fees_fragment.xml + bottom_sheet_opentable_fees.xml —— */
+		.fees-title { margin: 16px; font: 700 18px/24px var(--font-brand); }
+		.fee-row { display: flex; gap: 16px; padding: 8px 16px; font: 500 14px/20px var(--font-body); color: var(--fg-default); }
+		.fee-row span:first-child { flex: 1; }
+		.fees .ot-btn { margin-top: 32px; }
+
+		/* —— Filter pill: bottom_sheet_filter_select_multi.xml + filter_select_item.xml —— */
+		.flt { padding-bottom: 36px; }
+		.flt-head { display: flex; justify-content: space-between; align-items: baseline; margin: 36px 16px 0; }
+		.flt-head h2 { margin: 0; font: 700 18px/24px var(--font-brand); }
+		.flt-head button { border: none; background: none; padding: 0; color: var(--fg-link); font: 500 16px/20px var(--font-brand); cursor: pointer; }
+		.flt-list { margin: 4px 0 0 16px; padding-bottom: 24px; max-height: 520px; overflow-y: auto; }
+		.flt-item { height: 58px; display: flex; align-items: flex-start; cursor: pointer; }
+		.flt-item span { flex: 1; height: 50px; display: flex; align-items: center; margin-right: 16px; font: 400 16px/20px var(--font-body); color: var(--fg-alt); }
+		.flt-item i { flex: 0 0 48px; height: 58px; display: grid; place-items: center; }
+		.flt-item i::before { content: ""; width: 18px; height: 18px; border: 2px solid var(--fg-default); border-radius: 2px; box-sizing: border-box; }
+		.flt-item[aria-checked="true"] i::before { border-color: var(--fg-action); background: var(--fg-action) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='white' stroke-width='3' d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; }
+		.flt .ot-btn { margin: 0 16px; }
+
+		/* —— Loyalty enrollment: LoyaltyEnrollmentModalScreen + LoyaltyEnrollmentContent —— */
+		.loy-close { display: flex; justify-content: flex-end; padding: 6px 6px 0 0; }
+		.loy-strip { position: relative; height: 124px; }
+		.polaroid { position: absolute; left: calc(50% - 40px); top: 0; width: 80px; height: 124px; background: #fff; padding: 5px 5px 18px; border-radius: 2px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); opacity: 0; }
+		.polaroid div { width: 100%; height: 100%; border-radius: 1px; }
+		.loy-body { position: relative; z-index: 1; padding: 0 16px; text-align: center; opacity: 0; }
+		.loy-body h2 { margin: 24px 0 0; font: 700 28px/32px var(--font-brand); color: var(--fg-default); }
+		.loy-body p { margin: 12px 0 0; font: 400 14px/20px var(--font-body); color: var(--fg-alt); }
+		.loy-body small { display: block; margin-top: 12px; font: 400 12px/16px var(--font-body); color: var(--fg-alt); }
+		.loy-body small u { cursor: pointer; }
+		.loy-body .ot-btn { width: 100%; margin: 32px 0 16px; font: 500 16px/16px var(--font-body); position: relative; }
+		.loy-body .ot-btn.busy { color: transparent; }
+		.loy-body .ot-btn.busy::after { content: ""; position: absolute; left: calc(50% - 10px); top: calc(50% - 10px); width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+		@keyframes spin { to { transform: rotate(360deg); } }
+
+		@media (max-width: 820px) {
+			body { flex-direction: column; overflow: auto; height: auto; padding: var(--padding-medium); }
+			.panel { flex: none; align-self: stretch; max-height: none; }
+			.stage { flex-wrap: wrap; order: -1; }
+		}
+	</style>
+</head>
+<body>
+	<aside class="panel" aria-label="Sheet controls">
+		<h1>Android bottom sheets: Current vs M3</h1>
+		<p class="sub">Web replica of the M3 bottom sheet pilot on Android. Only the sheet wrapper changes: corners, drag handle, scrim and motion. Sheet content is the same in both.</p>
+
+		<div class="ctl-label">View</div>
+		<div class="seg" role="group" aria-label="View">
+			<button type="button" data-view="single" aria-pressed="true">One phone</button>
+			<button type="button" data-view="compare" aria-pressed="false">Side by side</button>
+		</div>
+
+		<div class="ctl-label">Sheets</div>
+		<div id="cards"></div>
+
+		<div class="ctl-label" id="spec-label">What changes</div>
+		<table class="spec" id="spec"></table>
+
+		<p class="foot">Tap the highlighted pill or link on the phone, or press Open. Drag a sheet down or tap outside it to close. Built from the Android layouts on branch <code>al/no-tick-m3-sheets</code>, using OT Kit tokens.</p>
+	</aside>
+
+	<main class="stage" id="stage">
+		<div class="device" data-device="0"><div class="device-label">Current</div><div class="phone"></div></div>
+		<div class="device" data-device="1" hidden><div class="device-label">M3</div><div class="phone"></div></div>
+	</main>
+
+	<pre id="log" hidden></pre>
+
+	<script>
+		const ICON = {
+			back: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>',
+			search: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',
+			person: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+			tune: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>',
+			down: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>',
+			info: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>',
+			close: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+			wifi: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21l11.6-14.5C23.1 6.1 18.6 2.5 12 2.5S.9 6.1.4 6.5L12 21z"/></svg>',
+			battery: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>',
+		};
+
+		// Window chrome per theme, from Material Components 1.14.0 and the app themes
+		const CHROME = {
+			// Theme.Design.BottomSheetDialog (app values-v29) + Animation.Design.BottomSheetDialog
+			design: { name: "Theme.Design.BottomSheetDialog", inMs: 150, inEase: "cubic-bezier(0.4, 0, 1, 1)", outMs: 150, outAlphaMs: 150, outEase: "cubic-bezier(0.4, 0, 0.2, 1)", dim: 0.6, edgeToEdge: false, handle: false, shadow: "none" },
+			// ThemeOverlay.MaterialComponents.BottomSheetDialog + Animation.MaterialComponents.BottomSheetDialog
+			mtrl: { name: "MaterialComponents BottomSheetDialog", inMs: 250, inEase: "cubic-bezier(0, 0, 0.2, 1)", outMs: 200, outAlphaMs: 200, outEase: "cubic-bezier(0.4, 0, 1, 1)", dim: 0.6, edgeToEdge: true, handle: false, shadow: "0 -4px 16px rgba(0, 0, 0, 0.16)" },
+			// ThemeOverlay.OtKit.M3BottomSheetDialog + Animation.Material3.BottomSheetDialog
+			m3: { name: "ThemeOverlay.OtKit.M3BottomSheetDialog", inMs: 400, inEase: "cubic-bezier(0.2, 0, 0, 1)", outMs: 350, outAlphaMs: 300, outEase: "cubic-bezier(0.2, 0, 0, 1)", dim: 0.32, edgeToEdge: true, handle: true, radius: 28, shadow: "0 -1px 3px rgba(0, 0, 0, 0.12)" },
+		};
+
+		const SHEETS = {
+			dtp: { title: "Date, time and party picker", source: "BottomSheetDTPFragment", host: "search", legacy: "design", legacyRadius: 8 },
+			service_fees: { title: "Service fees", source: "BottomSheetServiceFeesFragment", host: "checkout", legacy: "design", legacyRadius: 8 },
+			pill_filter: { title: "Search filter pill (Cuisine)", source: "PillFilterBottomSheetDialog", host: "search", legacy: "mtrl", legacyRadius: 0 },
+			loyalty_enrollment: { title: "Loyalty enrollment", source: "LoyaltyEnrollmentModalBottomSheetFragment", host: "home", legacy: "mtrl", legacyRadius: 8 },
+		};
+		const SHEET_IDS = Object.keys(SHEETS);
+
+		function chromeFor(sheetId, style) {
+			const s = SHEETS[sheetId];
+			if (style === "m3") return { ...CHROME.m3 };
+			return { ...CHROME[s.legacy], radius: s.legacyRadius };
+		}
+
+		const logEl = document.getElementById("log");
+		const log = (msg) => { logEl.textContent += msg + "\n"; };
+
+		// —— Shared sample data (matches M3SheetPreviewActivity) ——
+		const CUISINES = ["American", "Italian", "Steakhouse", "Seafood", "Mexican", "Japanese", "French", "Indian"];
+		const FEES = [
+			["Restaurant experience fees", "$36.00"],
+			["Add-ons (5%)", "$9.00"],
+			["OpenTable service fee (2%)", "$2.50"],
+		];
+		const RESTAURANTS = [
+			{ name: "Olive & Ash", meta: "★ 4.7 (1,203) · Italian · $$$", tone: "#e9dccb" },
+			{ name: "Harbor Grill", meta: "★ 4.6 (842) · Seafood · $$$", tone: "#d9e3e6" },
+			{ name: "Sakura House", meta: "★ 4.8 (2,015) · Japanese · $$$$", tone: "#eadada" },
+			{ name: "The Copper Pot", meta: "★ 4.5 (634) · American · $$", tone: "#e6e1d3" },
+			{ name: "Casa Verde", meta: "★ 4.4 (511) · Mexican · $$", tone: "#dde6d8" },
+		];
+		const POLAROID_TONES = [
+			"linear-gradient(160deg, #c98b5a, #7a3f22)",
+			"linear-gradient(160deg, #e3c27a, #a8662f)",
+			"linear-gradient(160deg, #b3c48b, #5d7a3a)",
+			"linear-gradient(160deg, #d7896f, #8e3b2d)",
+			"linear-gradient(160deg, #9fb7c9, #4f6b80)",
+		];
+		// LoyaltyEnrollmentModalAnimations.POLAROID_FINAL_STATES
+		const POLAROID_FINAL = [[-183, -25], [-91, -10], [-8, 0], [99, 28], [181, 13]];
+		const STANDARD_EASING = "cubic-bezier(0.42, 0, 0.58, 1)";
+
+		// —— DTP helpers (DateNumberFormatter / SearchResultAppBarLayout.setDtp) ——
+		const DTP_ROW = 40;
+		const DTP_DAYS = 60;
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const dtpDate = (day) => new Date(today.getFullYear(), today.getMonth(), today.getDate() + day);
+		const dtpTime = (slot) => {
+			const h = Math.floor(slot / 2);
+			return `${h % 12 || 12}:${slot % 2 ? "30" : "00"} ${h < 12 ? "AM" : "PM"}`;
+		};
+		const dtpWheelDay = (day) => {
+			if (day === 0) return "Today";
+			if (day === 1) return "Tomorrow";
+			const d = dtpDate(day);
+			return day < 7 ? d.toLocaleDateString("en-US", { weekday: "short" }) : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+		};
+		const dtpPillText = ({ party, day, slot }) => {
+			let label;
+			if (day === 0) label = slot >= 34 ? "Tonight" : "Today";
+			else if (day === 1) label = "Tomorrow";
+			else if (day < 7) label = dtpDate(day).toLocaleDateString("en-US", { weekday: "long" });
+			else label = dtpDate(day).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+			return `${party} • ${label} at ${dtpTime(slot)}`;
+		};
+
+		let ZOOM = 1;
+
+		// —— Host screens ——
+		const HOSTS = {
+			search: (st) => `
+				<div class="host">
+					<div class="appbar">
+						<button type="button" class="icon-btn" aria-label="Back">${ICON.back}</button>
+						<div class="searchfield">${ICON.search}<span>Restaurants in New York</span></div>
+					</div>
+					<div class="pillrow"><button type="button" class="pill" data-open="dtp">${ICON.person}<span data-role="dtp-label">${dtpPillText(st.dtp)}</span></button></div>
+					<div class="pillrow">
+						<button type="button" class="pill" aria-label="All filters">${ICON.tune}</button>
+						<button type="button" class="pill${st.cuisines.length ? " on" : ""}" data-open="pill_filter" data-role="cuisine-pill">Cuisine${ICON.down}</button>
+						<button type="button" class="pill">Price${ICON.down}</button>
+						<button type="button" class="pill">Neighborhoods${ICON.down}</button>
+					</div>
+					<div class="list">${RESTAURANTS.map((r) => `
+						<div class="rcard">
+							<div class="rimg" style="background:${r.tone}"></div>
+							<div>
+								<div class="rname">${r.name}</div>
+								<div class="rmeta">${r.meta}</div>
+								<div class="slots"><span class="slot">6:45 PM</span><span class="slot">7:00 PM</span><span class="slot">7:15 PM</span></div>
+							</div>
+						</div>`).join("")}
+					</div>
+				</div>`,
+			checkout: () => `
+				<div class="host">
+					<div class="appbar">
+						<button type="button" class="icon-btn" aria-label="Back">${ICON.back}</button>
+						<h2>Review and reserve</h2>
+					</div>
+					<div class="section">
+						<div class="rcard" style="border:none;padding-top:0">
+							<div class="rimg" style="background:${RESTAURANTS[0].tone}"></div>
+							<div>
+								<div class="rname">Olive &amp; Ash</div>
+								<div class="rmeta">Tonight at 7:00 PM · 2 people</div>
+								<div class="rmeta">Chef's tasting menu</div>
+							</div>
+						</div>
+					</div>
+					<div class="section">
+						<h3>Payment summary</h3>
+						<div class="kv"><span>Subtotal</span><span>$180.00</span></div>
+						<div class="kv link" data-open="service_fees" role="button" tabindex="0"><span>Fees ${ICON.info}</span><span>$47.50</span></div>
+						<div class="kv"><span>Tax</span><span>$15.98</span></div>
+						<div class="kv total"><span>Total</span><span>$243.48</span></div>
+					</div>
+					<button type="button" class="cta">Complete reservation</button>
+				</div>`,
+			home: () => `
+				<div class="host">
+					<div class="appbar">
+						<div class="searchfield">${ICON.search}<span>Restaurants, cuisines, locations</span></div>
+					</div>
+					<div class="banner" data-open="loyalty_enrollment" role="button" tabindex="0">
+						<div><b>Get rewarded for dining out</b><span>Earn points with OpenTable Regulars</span></div>
+						<button type="button" class="go" tabindex="-1">Learn more</button>
+					</div>
+					<div class="section" style="padding-bottom:var(--padding-small)"><h3>Available for dinner tonight</h3></div>
+					<div class="hscroll">${RESTAURANTS.slice(0, 3).map((r) => `
+						<div class="hcard"><div class="rimg" style="background:${r.tone}"></div><div class="rname">${r.name}</div><div class="rmeta">${r.meta}</div></div>`).join("")}
+					</div>
+					<div class="section" style="padding-bottom:var(--padding-small)"><h3>Popular near you</h3></div>
+					<div class="hscroll">${RESTAURANTS.slice(2).map((r) => `
+						<div class="hcard"><div class="rimg" style="background:${r.tone}"></div><div class="rname">${r.name}</div><div class="rmeta">${r.meta}</div></div>`).join("")}
+					</div>
+				</div>`,
+		};
+
+		// —— Sheet contents (identical in Current and M3) ——
+		const CONTENT = {
+			dtp(phone) {
+				const draft = { ...phone.state.dtp };
+				const el = document.createElement("div");
+				el.innerHTML = `
+					<div class="dtp-title">Party size</div>
+					<div class="dtp-party" role="radiogroup" aria-label="Party size" data-nodrag>${Array.from({ length: 20 }, (_, i) => `<button type="button" role="radio" aria-checked="${i + 1 === draft.party}" data-party="${i + 1}">${i + 1}</button>`).join("")}</div>
+					<div class="dtp-title">Date and time</div>
+					<div class="dtp-wheels">
+						<div class="dtp-wheel-wrap day"><div class="dtp-wheel" data-wheel="day" aria-label="Date" data-nodrag><div class="dtp-wheel-pad"></div>${Array.from({ length: DTP_DAYS }, (_, i) => `<div class="dtp-wheel-row">${dtpWheelDay(i)}</div>`).join("")}<div class="dtp-wheel-pad"></div></div></div>
+						<div class="dtp-wheel-wrap time"><div class="dtp-wheel" data-wheel="slot" aria-label="Time" data-nodrag><div class="dtp-wheel-pad"></div>${Array.from({ length: 48 }, (_, i) => `<div class="dtp-wheel-row">${dtpTime(i)}</div>`).join("")}<div class="dtp-wheel-pad"></div></div></div>
+					</div>
+					<button type="button" class="ot-btn primary" data-role="done">Done</button>`;
+				const wheels = [...el.querySelectorAll(".dtp-wheel")];
+				const syncWheel = (w) => {
+					const i = Math.max(0, Math.round(w.scrollTop / DTP_ROW));
+					w.querySelectorAll(".dtp-wheel-row").forEach((r, j) => r.classList.toggle("sel", j === i));
+					return i;
+				};
+				el.querySelector(".dtp-party").addEventListener("click", (e) => {
+					const b = e.target.closest("[data-party]");
+					if (!b) return;
+					draft.party = +b.dataset.party;
+					el.querySelectorAll("[data-party]").forEach((x) => x.setAttribute("aria-checked", String(+x.dataset.party === draft.party)));
+				});
+				wheels.forEach((w) => {
+					w.addEventListener("scroll", () => syncWheel(w), { passive: true });
+					let startY = 0, startTop = 0, dragging = false;
+					w.addEventListener("pointerdown", (e) => {
+						if (e.pointerType !== "mouse") return;
+						startY = e.clientY; startTop = w.scrollTop; dragging = true;
+						w.setPointerCapture(e.pointerId);
+						w.classList.add("dragging");
+					});
+					w.addEventListener("pointermove", (e) => {
+						if (!dragging) return;
+						w.scrollTop = startTop - (e.clientY - startY) / ZOOM;
+					});
+					const end = () => {
+						if (!dragging) return;
+						dragging = false;
+						w.classList.remove("dragging");
+						w.scrollTo({ top: syncWheel(w) * DTP_ROW, behavior: "smooth" });
+					};
+					w.addEventListener("pointerup", end);
+					w.addEventListener("pointercancel", end);
+				});
+				// Done, scrim tap and back all apply the selection (prod onCancel -> onDoneButtonClick)
+				const apply = () => {
+					wheels.forEach((w) => { draft[w.dataset.wheel] = syncWheel(w); });
+					Object.assign(phone.state.dtp, draft);
+					phone.host.querySelectorAll("[data-role=dtp-label]").forEach((x) => { x.textContent = dtpPillText(phone.state.dtp); });
+				};
+				el.querySelector("[data-role=done]").addEventListener("click", () => phone.close());
+				return {
+					el,
+					onAttached() {
+						const row = el.querySelector(".dtp-party");
+						const chip = row.querySelector(`[data-party="${draft.party}"]`);
+						row.scrollLeft = Math.max(0, chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2);
+						wheels[0].scrollTop = draft.day * DTP_ROW;
+						wheels[1].scrollTop = draft.slot * DTP_ROW;
+						wheels.forEach(syncWheel);
+					},
+					onDismiss: apply,
+				};
+			},
+
+			service_fees(phone) {
+				const el = document.createElement("div");
+				el.className = "fees";
+				el.innerHTML = `
+					<div class="fees-title">Fees</div>
+					${FEES.map(([label, price]) => `<div class="fee-row"><span>${label}</span><span>${price}</span></div>`).join("")}
+					<button type="button" class="ot-btn secondary" data-role="close">Close</button>`;
+				el.querySelector("[data-role=close]").addEventListener("click", () => phone.close());
+				return { el };
+			},
+
+			pill_filter(phone) {
+				// sortFiltersBySelected: selected first
+				const selected = new Set(phone.state.cuisines);
+				const sorted = [...CUISINES.filter((c) => selected.has(c)), ...CUISINES.filter((c) => !selected.has(c))];
+				const el = document.createElement("div");
+				el.className = "flt";
+				el.innerHTML = `
+					<div class="flt-head"><h2>Cuisine</h2><button type="button" data-role="clear">Clear all</button></div>
+					<div class="flt-list" data-nodrag>${sorted.map((c) => `<div class="flt-item" role="checkbox" tabindex="0" aria-checked="${selected.has(c)}" data-value="${c}"><span>${c}</span><i></i></div>`).join("")}</div>
+					<button type="button" class="ot-btn primary" data-role="apply">Apply</button>`;
+				el.querySelector(".flt-list").addEventListener("click", (e) => {
+					const item = e.target.closest(".flt-item");
+					if (item) item.setAttribute("aria-checked", String(item.getAttribute("aria-checked") !== "true"));
+				});
+				el.querySelector("[data-role=clear]").addEventListener("click", () => {
+					el.querySelectorAll(".flt-item").forEach((i) => i.setAttribute("aria-checked", "false"));
+				});
+				el.querySelector("[data-role=apply]").addEventListener("click", () => {
+					phone.state.cuisines = [...el.querySelectorAll('.flt-item[aria-checked="true"]')].map((i) => i.dataset.value);
+					phone.host.querySelector("[data-role=cuisine-pill]")?.classList.toggle("on", phone.state.cuisines.length > 0);
+					phone.close();
+				});
+				return { el };
+			},
+
+			loyalty_enrollment(phone) {
+				const el = document.createElement("div");
+				el.innerHTML = `
+					<div class="loy-close"><button type="button" class="icon-btn" aria-label="Close" data-role="close" style="width:48px;height:48px">${ICON.close}</button></div>
+					<div class="loy-strip" aria-hidden="true">${POLAROID_TONES.map((t) => `<div class="polaroid"><div style="background:${t}"></div></div>`).join("")}</div>
+					<div class="loy-body">
+						<h2>Get rewarded for dining out</h2>
+						<p>Join OpenTable Regulars to earn points and progress towards Gold status for exclusive rewards, like 6 months of Uber One.</p>
+						<small>Restrictions apply. <u>Terms and Conditions</u></small>
+						<button type="button" class="ot-btn primary" data-role="join">Join OpenTable Regulars</button>
+					</div>`;
+				el.querySelector("[data-role=close]").addEventListener("click", () => phone.close());
+				const join = el.querySelector("[data-role=join]");
+				join.addEventListener("click", () => {
+					if (join.classList.contains("busy")) return;
+					join.classList.add("busy");
+					setTimeout(() => join.classList.remove("busy"), 1200);
+				});
+				return {
+					el,
+					onAttached() {
+						// AnimatedPolaroidStrip SPREAD: rise to centre after 200ms (495ms), then spread (550ms)
+						const total = 200 + 495 + 550;
+						el.querySelectorAll(".polaroid").forEach((p, i) => {
+							const [x, r] = POLAROID_FINAL[i];
+							p.animate([
+								{ offset: 0, transform: "translate(0, 400px) rotate(-90deg) scale(0.96)", opacity: 0 },
+								{ offset: 200 / total, transform: "translate(0, 400px) rotate(-90deg) scale(0.96)", opacity: 0, easing: STANDARD_EASING },
+								{ offset: 695 / total, transform: "translate(0, 0) rotate(0deg) scale(1)", opacity: 1, easing: STANDARD_EASING },
+								{ offset: 1, transform: `translate(${x}px, 0) rotate(${r}deg) scale(1)`, opacity: 1 },
+							], { duration: total, fill: "forwards" });
+						});
+						// LoyaltyEnrollmentContent: text slides up 20dp and fades in after 550ms (500ms)
+						el.querySelector(".loy-body").animate([
+							{ transform: "translateY(20px)", opacity: 0 },
+							{ transform: "none", opacity: 1 },
+						], { duration: 500, delay: 550, easing: STANDARD_EASING, fill: "both" });
+					},
+				};
+			},
+		};
+
+		// —— Phone: host screen + bottom sheet window ——
+		class Phone {
+			constructor(root, index) {
+				this.root = root;
+				this.index = index;
+				this.state = { dtp: { party: 2, day: 0, slot: 38 }, cuisines: ["Italian"] };
+				this.current = null;
+				root.innerHTML = `
+					<div class="statusbar"><span>9:41</span><span style="display:flex;gap:4px">${ICON.wifi}${ICON.battery}</span></div>
+					<div class="host-slot"></div>
+					<div class="scrim"></div>
+					<div class="navbar"></div>`;
+				this.hostSlot = root.querySelector(".host-slot");
+				this.scrim = root.querySelector(".scrim");
+				this.navbar = root.querySelector(".navbar");
+				this.scrim.addEventListener("click", () => this.close());
+				this.hostName = null;
+			}
+
+			get host() { return this.hostSlot; }
+			get height() { return this.root.clientHeight; }
+
+			setHost(name) {
+				if (this.hostName === name) return;
+				this.hostName = name;
+				this.hostSlot.innerHTML = HOSTS[name](this.state);
+				this.hostSlot.querySelectorAll("[data-open]").forEach((t) => {
+					const go = (e) => { e.preventDefault(); app.openFromHost(t.dataset.open); };
+					t.addEventListener("click", go);
+					t.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") go(e); });
+				});
+			}
+
+			open(sheetId, style) {
+				if (this.current) this.remove();
+				this.setHost(SHEETS[sheetId].host);
+				const cfg = chromeFor(sheetId, style);
+				const content = CONTENT[sheetId](this);
+				const sheet = document.createElement("div");
+				sheet.className = "sheet";
+				sheet.setAttribute("role", "dialog");
+				sheet.setAttribute("aria-label", SHEETS[sheetId].title);
+				sheet.dataset.sheet = sheetId;
+				sheet.dataset.style = style;
+				sheet.style.borderRadius = `${cfg.radius}px ${cfg.radius}px 0 0`;
+				sheet.style.boxShadow = cfg.shadow;
+				// Edge-to-edge themes draw the sheet behind the navigation bar and pad its content
+				sheet.style.bottom = cfg.edgeToEdge ? "0" : "var(--nav-h)";
+				sheet.style.paddingBottom = cfg.edgeToEdge ? "var(--nav-h)" : "0";
+				this.navbar.classList.toggle("solid", !cfg.edgeToEdge);
+				if (cfg.handle) {
+					const handle = document.createElement("div");
+					handle.className = "drag-handle";
+					handle.setAttribute("role", "button");
+					handle.setAttribute("aria-label", "Drag handle");
+					sheet.appendChild(handle);
+				}
+				sheet.appendChild(content.el);
+				this.root.appendChild(sheet);
+				this.scrim.classList.add("on");
+				content.onAttached?.();
+				this.current = { sheetId, style, cfg, sheet, content, closing: false };
+				this.bindDrag(sheet);
+
+				// Window enter animation: 20%p slide + fade; dim fades with the window
+				const lift = this.height * 0.2;
+				const anim = sheet.animate([
+					{ transform: `translateY(${lift}px)`, opacity: 0 },
+					{ transform: "translateY(0)", opacity: 1 },
+				], { duration: cfg.inMs, easing: cfg.inEase });
+				this.scrim.getAnimations().forEach((a) => a.cancel());
+				this.scrim.style.opacity = cfg.dim;
+				this.scrim.animate([{ opacity: 0 }, { opacity: cfg.dim }], { duration: cfg.inMs, easing: cfg.inEase });
+				log(`open ${sheetId} ${style} radius=${cfg.radius} handle=${cfg.handle} dim=${cfg.dim} in=${cfg.inMs}`);
+				return anim;
+			}
+
+			close() {
+				const cur = this.current;
+				if (!cur || cur.closing) return;
+				cur.closing = true;
+				cur.content.onDismiss?.();
+				const lift = this.height * 0.2;
+				const { cfg, sheet } = cur;
+				sheet.getAnimations().forEach((a) => a.cancel());
+				const from = sheet.style.transform || "translateY(0)";
+				sheet.animate([{ transform: from, opacity: 1 }, { transform: `translateY(${lift}px)`, opacity: 0 }], { duration: cfg.outMs, easing: cfg.outEase, fill: "forwards" });
+				this.fadeScrim(cfg.outAlphaMs, cfg.outEase).then(() => this.remove());
+				log(`close ${cur.sheetId} ${cur.style}`);
+			}
+
+			dismissByDrag(dy) {
+				const cur = this.current;
+				if (!cur || cur.closing) return;
+				cur.closing = true;
+				cur.content.onDismiss?.();
+				const h = cur.sheet.offsetHeight;
+				cur.sheet.animate([{ transform: `translateY(${dy}px)` }, { transform: `translateY(${h}px)` }], { duration: 220, easing: "cubic-bezier(0, 0, 0.2, 1)", fill: "forwards" });
+				this.fadeScrim(220, "linear").then(() => this.remove());
+				log(`swipe-dismiss ${cur.sheetId} ${cur.style}`);
+			}
+
+			fadeScrim(ms, easing) {
+				const start = getComputedStyle(this.scrim).opacity;
+				this.scrim.style.opacity = 0;
+				return this.scrim.animate([{ opacity: start }, { opacity: 0 }], { duration: ms, easing }).finished.catch(() => {});
+			}
+
+			remove() {
+				if (!this.current) return;
+				this.current.sheet.remove();
+				this.current = null;
+				this.scrim.classList.remove("on");
+				this.scrim.style.opacity = 0;
+				this.navbar.classList.remove("solid");
+			}
+
+			bindDrag(sheet) {
+				let startY = 0, startT = 0, dy = 0, pending = false, dragging = false, suppressClick = false;
+				sheet.addEventListener("pointerdown", (e) => {
+					if (e.button !== 0 || e.target.closest("[data-nodrag]") || this.current?.closing) return;
+					pending = true; dragging = false; startY = e.clientY; startT = performance.now(); dy = 0;
+				});
+				sheet.addEventListener("pointermove", (e) => {
+					if (!pending) return;
+					const raw = (e.clientY - startY) / ZOOM;
+					if (!dragging && Math.abs(raw) > 6) {
+						dragging = true;
+						sheet.setPointerCapture(e.pointerId);
+						sheet.classList.add("dragging");
+						sheet.getAnimations().forEach((a) => a.finish());
+					}
+					if (!dragging) return;
+					dy = Math.max(0, raw);
+					sheet.style.transform = `translateY(${dy}px)`;
+					this.scrim.style.opacity = this.current.cfg.dim * (1 - dy / sheet.offsetHeight);
+				});
+				const end = () => {
+					if (!pending) return;
+					pending = false;
+					if (!dragging) return;
+					dragging = false;
+					suppressClick = true;
+					setTimeout(() => { suppressClick = false; }, 0);
+					sheet.classList.remove("dragging");
+					const v = dy / Math.max(1, performance.now() - startT);
+					if (dy > sheet.offsetHeight * 0.3 || (v > 0.6 && dy > 40)) {
+						this.dismissByDrag(dy);
+					} else {
+						sheet.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], { duration: 200, easing: "cubic-bezier(0, 0, 0.2, 1)" });
+						sheet.style.transform = "";
+						this.scrim.style.opacity = this.current.cfg.dim;
+					}
+				};
+				sheet.addEventListener("pointerup", end);
+				sheet.addEventListener("pointercancel", end);
+				sheet.addEventListener("click", (e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
+			}
+		}
+
+		// —— App: controller panel, view mode, layout ——
+		const app = {
+			view: "single",
+			styles: Object.fromEntries(SHEET_IDS.map((id) => [id, "current"])),
+			focus: "dtp",
+			phones: [...document.querySelectorAll(".phone")].map((el, i) => new Phone(el, i)),
+			devices: [...document.querySelectorAll(".device")],
+
+			init() {
+				this.phones.forEach((p) => p.setHost("search"));
+				document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => this.setView(b.dataset.view)));
+				document.getElementById("cards").addEventListener("click", (e) => {
+					const card = e.target.closest("[data-sheet]");
+					if (!card) return;
+					const id = card.dataset.sheet;
+					const seg = e.target.closest("[data-style]");
+					if (seg) {
+						if (this.styles[id] === seg.dataset.style) return;
+						this.styles[id] = seg.dataset.style;
+						this.focus = id;
+						if (this.view === "single" && this.phones[0].current?.sheetId === id) this.open(id);
+						else this.render();
+						return;
+					}
+					if (e.target.closest("[data-open]")) this.open(id);
+				});
+				document.addEventListener("keydown", (e) => { if (e.key === "Escape") this.phones.forEach((p) => p.close()); });
+				window.addEventListener("resize", () => this.layout());
+				this.readHash();
+				this.render();
+				this.layout();
+				if (this.pendingOpen) setTimeout(() => this.open(this.pendingOpen), 300);
+			},
+
+			readHash() {
+				const q = new URLSearchParams(location.hash.slice(1));
+				if (q.get("view") === "compare") this.view = "compare";
+				const id = q.get("sheet");
+				if (SHEETS[id]) {
+					this.focus = id;
+					if (q.get("style") === "m3") this.styles[id] = "m3";
+					this.pendingOpen = id;
+				}
+			},
+
+			writeHash() {
+				const q = new URLSearchParams({ sheet: this.focus });
+				if (this.view === "compare") q.set("view", "compare");
+				else q.set("style", this.styles[this.focus]);
+				history.replaceState(null, "", "#" + q.toString());
+			},
+
+			setView(view) {
+				if (this.view === view) return;
+				this.view = view;
+				this.phones.forEach((p) => p.remove());
+				const host = SHEETS[this.focus].host;
+				this.phones.forEach((p) => p.setHost(host));
+				this.render();
+				this.layout();
+				this.writeHash();
+			},
+
+			openFromHost(id) {
+				this.open(id);
+			},
+
+			open(id) {
+				this.focus = id;
+				if (this.view === "compare") {
+					this.phones[0].open(id, "current");
+					this.phones[1].open(id, "m3");
+				} else {
+					this.phones[0].open(id, this.styles[id]);
+				}
+				this.render();
+				this.writeHash();
+			},
+
+			render() {
+				const compare = this.view === "compare";
+				document.body.classList.toggle("compare-on", compare);
+				document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === this.view)));
+				this.devices[1].hidden = !compare;
+				const style = this.styles[this.focus];
+				this.devices[0].querySelector(".device-label").textContent = compare ? "Current" : (style === "m3" ? "M3" : "Current");
+				document.getElementById("cards").innerHTML = SHEET_IDS.map((id) => {
+					const s = SHEETS[id];
+					const c = chromeFor(id, "current");
+					return `
+						<div class="card${id === this.focus ? " focus" : ""}" data-sheet="${id}">
+							<div class="card-title">${s.title}</div>
+							<div class="card-desc">${s.source} · current: ${c.radius ? c.radius + "dp corners" : "square corners"}, ${c.inMs}ms</div>
+							<div class="row">
+								<div class="seg style" role="group" aria-label="${s.title} wrapper">
+									<button type="button" data-style="current" aria-pressed="${this.styles[id] === "current"}">Current</button>
+									<button type="button" data-style="m3" aria-pressed="${this.styles[id] === "m3"}">M3</button>
+								</div>
+								<button type="button" class="btn-open" data-open>${compare ? "Open both" : "Open"}</button>
+							</div>
+						</div>`;
+				}).join("");
+				const cur = chromeFor(this.focus, "current");
+				const m3 = chromeFor(this.focus, "m3");
+				document.getElementById("spec-label").textContent = `What changes: ${SHEETS[this.focus].title}`;
+				const rows = [
+					["Top corners", cur.radius ? `${cur.radius}dp` : "Square", `${m3.radius}dp`],
+					["Drag handle", "None", "32 × 4dp, 48dp target"],
+					["Scrim", `Black ${Math.round(cur.dim * 100)}%`, `Black ${Math.round(m3.dim * 100)}%`],
+					["Enter", `${cur.inMs}ms, 20% slide + fade`, `${m3.inMs}ms emphasized, 20% slide + fade`],
+					["Exit", `${cur.outMs}ms`, `${m3.outMs}ms slide, ${m3.outAlphaMs}ms fade`],
+					["Nav bar", cur.edgeToEdge ? "Sheet draws behind it" : "Solid white bar", "Sheet draws behind it"],
+					["Theme", cur.name, m3.name],
+				];
+				document.getElementById("spec").innerHTML = `<thead><tr><th></th><th>Current</th><th>M3</th></tr></thead><tbody>${rows.map(([k, a, b]) => `<tr><th>${k}</th><td>${a}</td><td>${b}</td></tr>`).join("")}</tbody>`;
+			},
+
+			layout() {
+				const stage = document.getElementById("stage");
+				const narrow = window.innerWidth <= 820;
+				const count = this.view === "compare" ? 2 : 1;
+				const labelH = 36;
+				const availH = narrow ? Infinity : stage.clientHeight - labelH;
+				const gap = 32;
+				const availW = narrow ? window.innerWidth - 32 : stage.clientWidth - gap * (count - 1);
+				const perW = narrow ? availW : availW / count;
+				ZOOM = Math.min(1, availH / 917, perW / 414);
+				document.querySelectorAll(".phone").forEach((p) => { p.style.zoom = ZOOM; });
+			},
+		};
+
+		app.init();
+		window.__test = { app, CHROME, chromeFor };
+	</script>
+</body>
+</html>
