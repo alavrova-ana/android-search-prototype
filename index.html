@@ -110,7 +110,7 @@
 			padding: 0 24px;
 			font-size: 14px;
 			font-weight: 600;
-			z-index: 5;
+			z-index: 8;
 		}
 		.status .right { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--fg-default); }
 
@@ -186,6 +186,58 @@
 			border: 1px solid rgba(216, 217, 219, 0.6);
 		}
 		.dtp svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+		/* Option 1 field size: default → active side margins (height stays 56dp) */
+		#v2[data-size="2"] { --margin-v2-collapsed: 16px; --margin-v2-expanded: 16px; }
+		#v2[data-size="3"] { --margin-v2-collapsed: 16px; --margin-v2-expanded: 12px; }
+
+		/* Option 1 location search types */
+		.dtp-wrap { gap: 8px; }
+		.loc-chip { display: none; font-family: inherit; line-height: inherit; color: var(--fg-default); cursor: pointer; max-width: 45%; }
+		.loc-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		#v2[data-loc="chip"] .loc-chip { display: inline-flex; }
+		#v2[data-loc="chip"] .location-row { display: none; }
+		#v2 .location-row { cursor: pointer; }
+
+		/* Location search page — M3 shared axis X (forward: 300ms emphasized decelerate) */
+		.loc-page {
+			position: absolute;
+			inset: 0;
+			z-index: 7;
+			display: flex;
+			flex-direction: column;
+			padding-top: var(--status-h);
+			background: var(--bg-default);
+			visibility: hidden;
+			transform: translateX(100%);
+			transition: transform 200ms cubic-bezier(0.3, 0, 0.8, 0.15), visibility 0s linear 200ms;
+		}
+		.loc-page.open {
+			visibility: visible;
+			transform: none;
+			transition: transform 300ms cubic-bezier(0.05, 0.7, 0.1, 1), visibility 0s;
+		}
+		.loc-page.no-anim { transition: none !important; }
+		.loc-page.pb-surface { transition: none; }
+		.loc-page.pb-surface.pb-settle { transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), border-radius 260ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease; }
+		.loc-head { padding: 12px 12px; }
+		.loc-page .search-field {
+			margin: 0;
+			padding: 0 4px;
+			gap: 4px;
+			border: 1px solid var(--border-default);
+		}
+		.loc-page .search-field .clear { width: 48px; height: 48px; }
+		.loc-page .search-field .clear svg { width: 16px; height: 16px; }
+		.loc-list {
+			flex: 1;
+			min-height: 0;
+			overflow: auto;
+			scrollbar-width: none;
+		}
+		.phone.kb-open .loc-page .loc-list { margin-bottom: var(--kb-h, 0px); }
+		.loc-list .suggestion.current .lead,
+		.loc-list .suggestion.current .body { color: var(--fg-accent-blue); }
 
 		.search-field {
 			height: var(--search-h);
@@ -544,6 +596,23 @@
 		}
 		.location-row svg { width: 24px; height: 24px; flex: 0 0 auto; color: var(--fg-alt); }
 		#v2 .location-row { border-radius: 999px; padding: 0 16px; }
+		#v2 .location-row input {
+			flex: 1;
+			min-width: 0;
+			height: 100%;
+			padding: 0;
+			border: none;
+			outline: none;
+			background: transparent;
+			font: inherit;
+			color: inherit;
+		}
+		#v2 .location-row input::placeholder { color: var(--fg-disabled-alt); }
+		#v2.loc-mode .location-row { border-color: var(--fg-default); box-shadow: inset 0 0 0 1px var(--fg-default); }
+		#v2.loc-mode .location-row svg { color: var(--fg-default); }
+		.loc-suggest { display: none; flex-direction: column; }
+		#v2.loc-mode .loc-suggest { display: flex; }
+		#v2.loc-mode .results > :not(.location-row):not(.loc-suggest) { display: none !important; }
 
 		.list-item {
 			display: flex;
@@ -864,7 +933,36 @@
 		}
 		.switch[aria-checked="true"] { background: var(--fg-action); }
 		.switch[aria-checked="true"]::after { transform: translateX(20px); }
-		.switch:focus-visible, .ctl-option:focus-visible { outline: 2px solid var(--fg-accent-blue); outline-offset: 2px; }
+		.switch:focus-visible, .ctl-option:focus-visible, .ctl-choice:focus-visible { outline: 2px solid var(--fg-accent-blue); outline-offset: 2px; }
+
+		/* Option-specific sub-controls, nested under the selected option */
+		.ctl-sub {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			margin: -2px 0 4px 18px;
+			padding: 4px 0 4px 12px;
+			border-left: 2px solid var(--border-default);
+		}
+		.ctl-sub-group { display: flex; flex-direction: column; gap: 4px; }
+		.ctl-sub-label { font-size: 12px; font-weight: 600; color: var(--fg-default); margin-bottom: 2px; }
+		.ctl-sub-label span { font-weight: 400; color: var(--fg-alt); }
+		.ctl-choice {
+			display: block;
+			width: 100%;
+			text-align: left;
+			padding: 6px 10px;
+			border: 1px solid var(--border-default);
+			border-radius: 6px;
+			background: var(--bg-default);
+			font: 400 12px/1.3 var(--font);
+			color: var(--fg-alt);
+			cursor: pointer;
+		}
+		.ctl-choice b { font-weight: 600; color: var(--fg-default); margin-right: 4px; }
+		.ctl-choice em { font-style: normal; font-size: 10px; font-weight: 600; color: var(--fg-alt); border: 1px solid var(--border-default); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+		.ctl-choice:hover { border-color: var(--fg-alt); }
+		.ctl-choice[aria-checked="true"] { border-color: var(--fg-default); box-shadow: inset 0 0 0 1px var(--fg-default); }
 
 		/* Page element toggles */
 		.hint {
@@ -1070,13 +1168,25 @@
 		<div class="controls">
 			<div class="ctl-group" role="radiogroup" aria-label="Search field">
 				<div class="ctl-label">Search field</div>
-				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v1">
-					<span class="radio" aria-hidden="true"></span>
-					<span><span class="t">Divided (baseline) search</span><span class="n">Option 2</span></span>
-				</button>
 				<button type="button" class="ctl-option" role="radio" aria-checked="false" data-switch="v2">
 					<span class="radio" aria-hidden="true"></span>
 					<span><span class="t">Expressive field</span><span class="n">Option 1</span></span>
+				</button>
+				<div class="ctl-sub" data-sub-for="v2" hidden>
+					<div class="ctl-sub-group" role="radiogroup" aria-label="Field size">
+						<div class="ctl-sub-label">Field size <span>default → active margins</span></div>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-size="1"><b>Size 1</b> 24 → 12dp <em>M3</em></button>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-size="2"><b>Size 2</b> 16 → 16dp</button>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-size="3"><b>Size 3</b> 16 → 12dp</button>
+					</div>
+					<div class="ctl-sub-group" role="radiogroup" aria-label="Location search">
+						<div class="ctl-sub-label">Location search</div>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-loc="field"><b>Separate field</b> below the search field</button>						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-loc="chip"><b>Location chip</b> next to the date pill</button>
+					</div>
+				</div>
+				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v1">
+					<span class="radio" aria-hidden="true"></span>
+					<span><span class="t">Divided (baseline) search</span><span class="n">Option 2</span></span>
 				</button>
 			</div>
 			<div class="ctl-group">
@@ -1089,7 +1199,7 @@
 		</div>
 		<p class="hint">
 			Tokens mirror Android OT Kit (<code>background.default</code>, <code>foreground.action #da3743</code>, rhythm 8/12/16).
-			Option 2 margins 16dp · Option 1 collapsed 24dp / expanded 12dp · field height 56dp.
+			Option 2 margins 16dp · Option 1 margins follow the Field size control · field height 56dp.
 			Share this file as a static HTML page — no build step.
 		</p>
 	</aside>
@@ -1178,6 +1288,7 @@
 			backIco.toggleAttribute("hidden", !expanded);
 			leading.setAttribute("aria-label", expanded ? "Back" : "Search");
 			const input = screen.querySelector("[data-role=input]");
+			exitInlineLoc(screen);
 			if (expanded) {
 				renderSuggestions(screen, input.value);
 				if (!screen.classList.contains("morphing")) showKb(input);
@@ -1316,6 +1427,199 @@
 			});
 		}
 
+		// —— Option 1 location search types (separate field, chip) ——
+		const ICON_PIN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm1 3a1 1 0 1 0-2 0 1 1 0 0 0 2 0Z"/><path d="M4 10a8 8 0 1 1 16 0c0 2.813-2.433 6.59-7.3 11.33a1 1 0 0 1-1.4 0C6.433 16.59 4 12.813 4 10Zm14 0a6 6 0 0 0-12 0c0 1.21.8 4 6 9.21 5.2-5.21 6-8 6-9.21Z"/></svg>';
+		const ICON_NEAR = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.47 3.53a.5.5 0 0 1 .1.56l-7.5 16.5a.5.5 0 0 1-.94-.08l-1.6-6.04a.5.5 0 0 0-.35-.35L4.14 12.5a.5.5 0 0 1-.08-.94l16.5-7.5a.5.5 0 0 1 .56.1ZM7.66 11.6l3.86 1.03a1.5 1.5 0 0 1 1.06 1.06l1.03 3.86 4.3-9.46-10.25 3.5Z"/></svg>';
+		const LOCATIONS = [
+			{ label: "Mountain View", sub: "California, United States" },
+			{ label: "Palo Alto", sub: "California, United States" },
+			{ label: "Los Altos", sub: "California, United States" },
+			{ label: "Sunnyvale", sub: "California, United States" },
+			{ label: "Menlo Park", sub: "California, United States" },
+			{ label: "Redwood City", sub: "California, United States" },
+			{ label: "San Jose", sub: "California, United States" },
+			{ label: "San Francisco", sub: "California, United States" },
+			{ label: "Santa Clara", sub: "California, United States" },
+			{ label: "Cupertino", sub: "California, United States" },
+		];
+		let currentLocation = "Mountain View";
+
+		const v2 = document.getElementById("v2");
+		v2.dataset.size = "1";
+		v2.dataset.loc = "field";
+		(() => {
+			const chip = document.createElement("button");
+			chip.type = "button";
+			chip.className = "dtp loc-chip";
+			chip.dataset.role = "loc-open";
+			chip.setAttribute("aria-label", "Change location");
+			chip.innerHTML = `${ICON_PIN}<span data-role="loc-label">${currentLocation}</span>`;
+			v2.querySelector(".dtp-wrap").appendChild(chip);
+			const row = v2.querySelector(".location-row");
+			row.innerHTML = `${ICON_PIN}<input type="text" data-role="loc-inline" placeholder="Location" aria-label="Location" enterkeyhint="search" inputmode="none" autocomplete="off" />`;
+			row.querySelector("input").value = currentLocation;
+			const suggest = document.createElement("div");
+			suggest.className = "loc-suggest";
+			suggest.dataset.role = "loc-suggest";
+			row.after(suggest);
+		})();
+
+		function locRowsHtml(q, header) {
+			const matches = LOCATIONS.filter((l) => l.label.toLowerCase().includes(q.toLowerCase()));
+			const near = q ? "" : `<button type="button" class="suggestion current" data-loc-pick="${escapeHtml(currentLocation)}"><span class="lead">${ICON_NEAR}</span><span class="body">${header.current}</span></button><div class="divider"></div><div class="section-label">${header.title}</div>`;
+			const list = q ? matches : matches.slice(0, header.limit ?? matches.length);
+			const rows = list.map((l) => `<button type="button" class="suggestion" data-loc-pick="${escapeHtml(l.label)}"><span class="lead">${ICON_PLACE}</span><span class="body">${highlight(l.label, q)}<span class="sub">${escapeHtml(l.sub)}</span></span></button>`).join("");
+			return near + (rows || `<div class="no-results">No locations for “${escapeHtml(q)}”</div>`);
+		}
+
+		// Separate field: location autocomplete runs in place on the focused search page (prod LocationAutocompleteFragment)
+		const locInline = v2.querySelector("[data-role=loc-inline]");
+		const locSuggest = v2.querySelector("[data-role=loc-suggest]");
+
+		function renderInlineLocations() {
+			locSuggest.innerHTML = locRowsHtml(locInline.value.trim(), { current: "Current Location", title: "Recent Locations", limit: 4 });
+		}
+
+		function enterInlineLoc() {
+			if (!v2.classList.contains("expanded") || v2.classList.contains("loc-mode")) return;
+			v2.classList.add("loc-mode");
+			locInline.value = "";
+			renderInlineLocations();
+			showKb(locInline);
+		}
+
+		function exitInlineLoc(screen) {
+			if (screen.id !== "v2" || !screen.classList.contains("loc-mode")) return;
+			screen.classList.remove("loc-mode");
+			const input = screen.querySelector("[data-role=loc-inline]");
+			input.value = currentLocation;
+			input.blur();
+		}
+
+		function pickInlineLocation(label) {
+			currentLocation = label;
+			document.querySelectorAll("[data-role=loc-label]").forEach((el) => { el.textContent = label; });
+			setExpanded(v2, false);
+			v2.querySelector("[data-role=results]").classList.remove("searching");
+		}
+
+		function submitInlineLocation() {
+			const q = locInline.value.trim();
+			const first = locSuggest.querySelector(".suggestion:not(.current)");
+			pickInlineLocation(q && first ? first.dataset.locPick : currentLocation);
+		}
+
+		locInline.addEventListener("focus", () => {
+			enterInlineLoc();
+			if (kbTarget !== locInline || !phone.classList.contains("kb-open")) showKb(locInline);
+		});
+		locInline.addEventListener("input", renderInlineLocations);
+		locInline.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") { e.preventDefault(); submitInlineLocation(); }
+			if (e.key === "Escape") setExpanded(v2, false);
+		});
+		locSuggest.addEventListener("click", (e) => {
+			const item = e.target.closest("[data-loc-pick]");
+			if (item) pickInlineLocation(item.dataset.locPick);
+		});
+
+		const locPage = document.createElement("section");
+		locPage.className = "loc-page";
+		locPage.setAttribute("aria-label", "Search location");
+		locPage.setAttribute("aria-hidden", "true");
+		locPage.innerHTML = `
+			<div class="loc-head">
+				<div class="search-field" data-role="loc-field">
+					<button type="button" class="leading" data-role="loc-back" aria-label="Back">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.303 6.353a.5.5 0 0 1 .707 0l.707.708a.5.5 0 0 1 0 .707l-3.889 3.889 3.89 3.889a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0l-4.95-4.95a.5.5 0 0 1 0-.707l4.95-4.95Z"/></svg>
+					</button>
+					<input type="search" placeholder="Search for a location" enterkeyhint="search" data-role="loc-input" inputmode="none" autocomplete="off" />
+					<button type="button" class="clear" data-role="loc-clear" aria-label="Clear">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m17.303 5.99.707.707a.5.5 0 0 1 0 .707L13.415 12l4.597 4.596a.5.5 0 0 1 0 .707l-.708.707a.5.5 0 0 1-.707 0L12 13.415l-4.596 4.597a.5.5 0 0 1-.707 0l-.707-.708a.5.5 0 0 1 0-.707L10.586 12 5.99 7.404a.5.5 0 0 1 0-.707l.707-.707a.5.5 0 0 1 .707 0L12 10.586l4.596-4.596a.5.5 0 0 1 .707 0Z"/></svg>
+					</button>
+				</div>
+			</div>
+			<div class="loc-list" data-role="loc-list"></div>`;
+		phone.appendChild(locPage);
+		const locField = locPage.querySelector("[data-role=loc-field]");
+		const locInput = locPage.querySelector("[data-role=loc-input]");
+		const locList = locPage.querySelector("[data-role=loc-list]");
+		let locReturnInput = null;
+
+		function renderLocations() {
+			const q = locInput.value.trim();
+			locField.classList.toggle("has-text", q.length > 0);
+			locList.innerHTML = locRowsHtml(q, { current: "Use current location", title: "Popular locations" });
+		}
+
+		function setLocAnim(instant) {
+			locPage.classList.toggle("no-anim", instant);
+			if (instant) requestAnimationFrame(() => requestAnimationFrame(() => locPage.classList.remove("no-anim")));
+		}
+
+		function openLocPage() {
+			const screen = activeScreen();
+			locReturnInput = screen.classList.contains("expanded") ? screen.querySelector("[data-role=input]") : null;
+			locInput.value = "";
+			renderLocations();
+			setLocAnim(false);
+			locPage.classList.add("open");
+			locPage.setAttribute("aria-hidden", "false");
+			showKb(locInput);
+			requestAnimationFrame(() => locInput.focus());
+		}
+
+		function closeLocPage({ instant = false } = {}) {
+			if (!locPage.classList.contains("open")) return;
+			setLocAnim(instant);
+			locPage.classList.remove("open");
+			locPage.setAttribute("aria-hidden", "true");
+			locInput.blur();
+			const back = locReturnInput;
+			locReturnInput = null;
+			if (back && back.closest(".screen").classList.contains("expanded")) {
+				setExpanded(back.closest(".screen"), true);
+			} else {
+				hideKb();
+			}
+		}
+
+		function pickLocation(label) {
+			currentLocation = label;
+			document.querySelectorAll("[data-role=loc-label]").forEach((el) => { el.textContent = label; });
+			locInline.value = label;
+			closeLocPage();
+		}
+
+		v2.addEventListener("click", (e) => {
+			const opener = e.target.closest("[data-role=loc-open]");
+			if (!opener) return;
+			e.stopPropagation();
+			openLocPage();
+		}, true);
+		locPage.querySelector("[data-role=loc-back]").addEventListener("click", () => closeLocPage());
+		locPage.querySelector("[data-role=loc-clear]").addEventListener("click", () => {
+			locInput.value = "";
+			renderLocations();
+			locInput.focus();
+		});
+		locInput.addEventListener("input", renderLocations);
+		locInput.addEventListener("focus", () => { if (kbTarget !== locInput || !phone.classList.contains("kb-open")) showKb(locInput); });
+		locInput.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") { e.preventDefault(); submitLocation(); }
+			if (e.key === "Escape") closeLocPage();
+		});
+		locList.addEventListener("click", (e) => {
+			const item = e.target.closest("[data-loc-pick]");
+			if (item) pickLocation(item.dataset.locPick);
+		});
+
+		function submitLocation() {
+			const first = locList.querySelector(".suggestion:not(.current)");
+			if (locInput.value.trim() && first) pickLocation(first.dataset.locPick);
+			else closeLocPage();
+		}
+
 		document.querySelectorAll(".screen").forEach(wireScreen);
 
 		// —— Android IME ——
@@ -1445,6 +1749,8 @@
 				case "{abc}": kbLayer = "abc"; renderKb(); return;
 				case "{space}": insertText(" "); return;
 				case "{action}": {
+					if (kbTarget === locInput) { submitLocation(); return; }
+					if (kbTarget === locInline) { submitInlineLocation(); return; }
 					const screen = kbTarget.closest(".screen");
 					setExpanded(screen, false);
 					screen.querySelector("[data-role=results]").classList.remove("searching");
@@ -1467,6 +1773,7 @@
 
 		function backTarget() {
 			if (phone.classList.contains("kb-open")) return "ime";
+			if (locPage.classList.contains("open")) return "loc";
 			return activeScreen().classList.contains("expanded") ? "search" : "none";
 		}
 
@@ -1487,6 +1794,10 @@
 					el.classList.add("pb-surface");
 					return { el, ox: w / 2 - el.offsetLeft, oy: h / 2 - el.offsetTop, corners: i === 0 ? "top" : "bottom" };
 				});
+			}
+			if (target === "loc") {
+				locPage.classList.add("pb-surface");
+				return [{ el: locPage, ox: locPage.offsetWidth / 2, oy: locPage.offsetHeight / 2, corners: "all" }];
 			}
 			return [];
 		}
@@ -1594,7 +1905,8 @@
 				if (commit) {
 					surfaces.forEach(({ el }) => { el.style.opacity = "0"; });
 					setTimeout(() => {
-						collapseSearch(screen);
+						if (target === "loc") closeLocPage({ instant: true });
+						else collapseSearch(screen);
 						pbCleanup();
 					}, 180);
 				} else {
@@ -1614,9 +1926,12 @@
 		options.forEach((btn) => {
 			btn.addEventListener("click", () => {
 				const id = btn.getAttribute("data-switch");
+				locReturnInput = null;
+				closeLocPage({ instant: true });
 				hideKb();
 				document.querySelectorAll(".screen").forEach((s) => {
 					clearMorph(s);
+					exitInlineLoc(s);
 					s.classList.remove("active", "expanded");
 					s.querySelector("[data-role=results]").classList.remove("searching");
 					const leading = s.querySelector("[data-role=leading]");
@@ -1627,6 +1942,32 @@
 				});
 				document.getElementById(id).classList.add("active");
 				options.forEach((b) => b.setAttribute("aria-checked", String(b === btn)));
+				syncSubControls();
+			});
+		});
+
+		function syncSubControls() {
+			document.querySelectorAll(".ctl-sub[data-sub-for]").forEach((sub) => {
+				const opt = document.querySelector(`.ctl-option[data-switch="${sub.dataset.subFor}"]`);
+				sub.hidden = opt.getAttribute("aria-checked") !== "true";
+			});
+		}
+		syncSubControls();
+
+		document.querySelectorAll(".ctl-sub-group").forEach((group) => {
+			group.addEventListener("click", (e) => {
+				const choice = e.target.closest(".ctl-choice");
+				if (!choice) return;
+				group.querySelectorAll(".ctl-choice").forEach((c) => c.setAttribute("aria-checked", String(c === choice)));
+				if (choice.dataset.size) v2.dataset.size = choice.dataset.size;
+				if (choice.dataset.loc) {
+					if (choice.dataset.loc !== v2.dataset.loc) {
+						closeLocPage({ instant: true });
+						if (v2.classList.contains("loc-mode")) setExpanded(v2, true);
+					}
+					v2.dataset.loc = choice.dataset.loc;
+				}
+				requestAnimationFrame(() => sheetLayout(v2));
 			});
 		});
 
