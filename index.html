@@ -220,6 +220,116 @@
 		.loc-page.no-anim { transition: none !important; }
 		.loc-page.pb-surface { transition: none; }
 		.loc-page.pb-surface.pb-settle { transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), border-radius 260ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease; }
+		/* DTP modal — prod BottomSheetDTPFragment (bottom_sheet_dtp_fragment.xml) */
+		.dtp:not(.loc-chip) { cursor: pointer; }
+		.dtp-modal {
+			position: absolute;
+			inset: 0;
+			z-index: 10;
+			visibility: hidden;
+			transition: visibility 0s linear 200ms;
+		}
+		.dtp-modal.open { visibility: visible; transition: visibility 0s; }
+		.dtp-scrim {
+			position: absolute;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.32);
+			opacity: 0;
+			transition: opacity 200ms linear;
+		}
+		.dtp-modal.open .dtp-scrim { opacity: 1; transition-duration: 250ms; }
+		.dtp-sheet {
+			position: absolute;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: var(--bg-default);
+			border-radius: 8px 8px 0 0;
+			transform: translateY(100%);
+			transition: transform 200ms cubic-bezier(0.4, 0, 1, 1);
+			padding-bottom: 8px;
+		}
+		.dtp-modal.open .dtp-sheet { transform: none; transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
+		.dtp-modal.no-anim .dtp-sheet,
+		.dtp-modal.no-anim .dtp-scrim { transition: none !important; }
+		.dtp-sheet.pb-surface { transition: none; }
+		.dtp-sheet.pb-surface.pb-settle { transition: transform 260ms cubic-bezier(0.2, 0, 0, 1), border-radius 260ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease; }
+		.dtp-title { margin: 32px 16px 0; font: 700 18px/24px var(--font); color: var(--fg-default); }
+		.dtp-party {
+			display: flex;
+			overflow-x: auto;
+			padding: 8px 8px 0;
+			scrollbar-width: none;
+		}
+		.dtp-party::-webkit-scrollbar { display: none; }
+		.dtp-party button {
+			flex: 0 0 auto;
+			min-width: 40px;
+			height: 48px;
+			margin: 0 6px;
+			padding: 0 4px;
+			border-radius: 999px;
+			border: 1px solid var(--border-default);
+			background: var(--bg-default);
+			font: 700 16px/1 var(--font);
+			color: #000;
+			cursor: pointer;
+		}
+		.dtp-party button[aria-checked="true"] { border: 2px solid var(--fg-action, #da3743); }
+		.dtp-wheels { display: flex; gap: 16px; margin: 8px 16px 0; }
+		.dtp-wheel-wrap { position: relative; }
+		.dtp-wheel-wrap.day { flex: 1.25; }
+		.dtp-wheel-wrap.time { flex: 1; }
+		.dtp-wheel-wrap::before,
+		.dtp-wheel-wrap::after {
+			content: "";
+			position: absolute;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background: #333;
+			pointer-events: none;
+		}
+		.dtp-wheel-wrap::before { top: 80px; }
+		.dtp-wheel-wrap::after { top: 120px; }
+		.dtp-wheel {
+			height: 200px;
+			overflow-y: auto;
+			scroll-snap-type: y mandatory;
+			scrollbar-width: none;
+			overscroll-behavior: contain;
+			cursor: grab;
+			touch-action: pan-y;
+		}
+		.dtp-wheel::-webkit-scrollbar { display: none; }
+		.dtp-wheel.dragging { scroll-snap-type: none; cursor: grabbing; }
+		.dtp-wheel-pad { height: 80px; }
+		.dtp-wheel-row {
+			height: 40px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			scroll-snap-align: center;
+			font: 400 16px/1 var(--font);
+			color: var(--fg-default);
+			opacity: 0.35;
+			user-select: none;
+			white-space: nowrap;
+		}
+		.dtp-wheel-row.sel { opacity: 1; }
+		.dtp-done {
+			display: block;
+			width: calc(100% - 32px);
+			min-height: 48px;
+			margin: 16px;
+			border: none;
+			border-radius: 4px;
+			background: #da3743;
+			color: #fff;
+			font: 700 18px/24px var(--font);
+			cursor: pointer;
+		}
+
 		.loc-head { padding: 12px 12px; }
 		.loc-page .search-field {
 			margin: 0;
@@ -1629,6 +1739,183 @@
 			else closeLocPage();
 		}
 
+		// —— DTP modal (prod BottomSheetDTPFragment: party chips 1–20, day + time wheels, Done) ——
+		const DTP_ROW = 40;
+		const DTP_DAYS = 60;
+		const dtpToday = new Date();
+		dtpToday.setHours(0, 0, 0, 0);
+		const dtpState = { party: 2, day: 0, slot: 38 };
+		let dtpDraft = { ...dtpState };
+		let dtpReturnInput = null;
+
+		const dtpDate = (day) => new Date(dtpToday.getFullYear(), dtpToday.getMonth(), dtpToday.getDate() + day);
+		const dtpTime = (slot) => {
+			const h = Math.floor(slot / 2);
+			return `${h % 12 || 12}:${slot % 2 ? "30" : "00"} ${h < 12 ? "AM" : "PM"}`;
+		};
+		// Wheel labels: DateNumberFormatter
+		const dtpWheelDay = (day) => {
+			if (day === 0) return "Today";
+			if (day === 1) return "Tomorrow";
+			const d = dtpDate(day);
+			return day < 7
+				? d.toLocaleDateString("en-US", { weekday: "short" })
+				: d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+		};
+		// Pill text: SearchResultAppBarLayout.setDtp → "{party} • " + DateTimeUtils.formatHomeDTNoParty
+		const dtpPillText = ({ party, day, slot }) => {
+			let label;
+			if (day === 0) label = slot >= 34 ? "Tonight" : "Today";
+			else if (day === 1) label = "Tomorrow";
+			else if (day < 7) label = dtpDate(day).toLocaleDateString("en-US", { weekday: "long" });
+			else label = dtpDate(day).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+			return `${party} • ${label} at ${dtpTime(slot)}`;
+		};
+
+		const dtpModal = document.createElement("div");
+		dtpModal.className = "dtp-modal";
+		dtpModal.setAttribute("aria-hidden", "true");
+		dtpModal.innerHTML = `
+			<div class="dtp-scrim" data-role="dtp-scrim"></div>
+			<div class="dtp-sheet" role="dialog" aria-label="Date, time and party size">
+				<div class="dtp-title">Party size</div>
+				<div class="dtp-party" role="radiogroup" aria-label="Party size">${Array.from({ length: 20 }, (_, i) => `<button type="button" role="radio" aria-checked="false" data-party="${i + 1}">${i + 1}</button>`).join("")}</div>
+				<div class="dtp-title">Date and time</div>
+				<div class="dtp-wheels">
+					<div class="dtp-wheel-wrap day"><div class="dtp-wheel" data-wheel="day" aria-label="Date"><div class="dtp-wheel-pad"></div>${Array.from({ length: DTP_DAYS }, (_, i) => `<div class="dtp-wheel-row">${dtpWheelDay(i)}</div>`).join("")}<div class="dtp-wheel-pad"></div></div></div>
+					<div class="dtp-wheel-wrap time"><div class="dtp-wheel" data-wheel="slot" aria-label="Time"><div class="dtp-wheel-pad"></div>${Array.from({ length: 48 }, (_, i) => `<div class="dtp-wheel-row">${dtpTime(i)}</div>`).join("")}<div class="dtp-wheel-pad"></div></div></div>
+				</div>
+				<button type="button" class="dtp-done" data-role="dtp-done">Done</button>
+			</div>`;
+		phone.appendChild(dtpModal);
+		const dtpSheet = dtpModal.querySelector(".dtp-sheet");
+		const dtpWheels = [...dtpModal.querySelectorAll(".dtp-wheel")];
+
+		function dtpSyncParty() {
+			dtpModal.querySelectorAll("[data-party]").forEach((b) => b.setAttribute("aria-checked", String(+b.dataset.party === dtpDraft.party)));
+		}
+
+		function dtpSyncWheel(wheel) {
+			const i = Math.round(wheel.scrollTop / DTP_ROW);
+			wheel.querySelectorAll(".dtp-wheel-row").forEach((r, j) => r.classList.toggle("sel", j === i));
+			return i;
+		}
+
+		function dtpSetWheel(wheel, index, smooth) {
+			wheel.scrollTo({ top: index * DTP_ROW, behavior: smooth ? "smooth" : "instant" });
+			if (!smooth) dtpSyncWheel(wheel);
+		}
+
+		function syncDtpPills() {
+			const text = dtpPillText(dtpState);
+			document.querySelectorAll("[data-role=dtp-label]").forEach((el) => { el.textContent = text; });
+		}
+
+		document.querySelectorAll(".dtp:not(.loc-chip)").forEach((pill) => {
+			const svg = pill.querySelector("svg");
+			pill.textContent = "";
+			pill.append(svg);
+			const label = document.createElement("span");
+			label.dataset.role = "dtp-label";
+			pill.append(label);
+			pill.setAttribute("role", "button");
+			pill.tabIndex = 0;
+			pill.setAttribute("aria-label", "Change date, time and party size");
+			pill.addEventListener("click", (e) => { e.stopPropagation(); openDtp(); });
+			pill.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDtp(); }
+			});
+		});
+		syncDtpPills();
+
+		function setDtpAnim(instant) {
+			dtpModal.classList.toggle("no-anim", instant);
+			if (instant) requestAnimationFrame(() => requestAnimationFrame(() => dtpModal.classList.remove("no-anim")));
+		}
+
+		function openDtp() {
+			dtpReturnInput = phone.classList.contains("kb-open") ? kbTarget : null;
+			hideKb();
+			dtpReturnInput?.blur();
+			dtpDraft = { ...dtpState };
+			dtpSyncParty();
+			setDtpAnim(false);
+			dtpModal.classList.add("open");
+			dtpModal.setAttribute("aria-hidden", "false");
+			dtpSetWheel(dtpWheels[0], dtpDraft.day, false);
+			dtpSetWheel(dtpWheels[1], dtpDraft.slot, false);
+			const row = dtpModal.querySelector(".dtp-party");
+			const chip = row.querySelector(`[data-party="${dtpDraft.party}"]`);
+			row.scrollLeft = Math.max(0, chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2);
+		}
+
+		// Done, scrim tap and back all apply the selection (prod onCancel → onDoneButtonClick)
+		function closeDtp({ instant = false } = {}) {
+			if (!dtpModal.classList.contains("open")) return;
+			dtpWheels.forEach((w) => { dtpDraft[w.dataset.wheel] = dtpSyncWheel(w); });
+			Object.assign(dtpState, dtpDraft);
+			syncDtpPills();
+			setDtpAnim(instant);
+			dtpModal.classList.remove("open");
+			dtpModal.setAttribute("aria-hidden", "true");
+			const back = dtpReturnInput;
+			dtpReturnInput = null;
+			if (back && back.closest(".screen")?.classList.contains("expanded")) {
+				showKb(back);
+				back.focus();
+			}
+		}
+
+		dtpModal.querySelector("[data-role=dtp-done]").addEventListener("click", () => closeDtp());
+		dtpModal.querySelector("[data-role=dtp-scrim]").addEventListener("click", () => closeDtp());
+		dtpModal.querySelector(".dtp-party").addEventListener("click", (e) => {
+			const b = e.target.closest("[data-party]");
+			if (!b) return;
+			dtpDraft.party = +b.dataset.party;
+			dtpSyncParty();
+		});
+		document.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && dtpModal.classList.contains("open")) closeDtp();
+		});
+
+		dtpWheels.forEach((wheel) => {
+			let settle = 0;
+			wheel.addEventListener("scroll", () => {
+				dtpSyncWheel(wheel);
+				clearTimeout(settle);
+				settle = setTimeout(() => { dtpDraft[wheel.dataset.wheel] = dtpSyncWheel(wheel); }, 120);
+			});
+			// Mouse drag (touch scrolls natively); tap a row to select it
+			let drag = null;
+			wheel.addEventListener("pointerdown", (e) => {
+				if (e.pointerType === "touch") return;
+				drag = { y: e.clientY, top: wheel.scrollTop, moved: false };
+				wheel.setPointerCapture(e.pointerId);
+			});
+			wheel.addEventListener("pointermove", (e) => {
+				if (!drag) return;
+				const dy = e.clientY - drag.y;
+				if (!drag.moved && Math.abs(dy) < 4) return;
+				drag.moved = true;
+				wheel.classList.add("dragging");
+				wheel.scrollTop = drag.top - dy;
+			});
+			const endDrag = (e) => {
+				if (!drag) return;
+				const { moved } = drag;
+				drag = null;
+				wheel.classList.remove("dragging");
+				if (moved) {
+					dtpSetWheel(wheel, Math.round(wheel.scrollTop / DTP_ROW), true);
+				} else {
+					const row = document.elementFromPoint(e.clientX, e.clientY)?.closest(".dtp-wheel-row");
+					if (row) dtpSetWheel(wheel, [...wheel.querySelectorAll(".dtp-wheel-row")].indexOf(row), true);
+				}
+			};
+			wheel.addEventListener("pointerup", endDrag);
+			wheel.addEventListener("pointercancel", endDrag);
+		});
+
 		document.querySelectorAll(".screen").forEach(wireScreen);
 
 		// —— Android IME ——
@@ -1782,6 +2069,7 @@
 
 		function backTarget() {
 			if (phone.classList.contains("kb-open")) return "ime";
+			if (dtpModal.classList.contains("open")) return "dtp";
 			if (locPage.classList.contains("open")) return "loc";
 			return activeScreen().classList.contains("expanded") ? "search" : "none";
 		}
@@ -1803,6 +2091,10 @@
 					el.classList.add("pb-surface");
 					return { el, ox: w / 2 - el.offsetLeft, oy: h / 2 - el.offsetTop, corners: i === 0 ? "top" : "bottom" };
 				});
+			}
+			if (target === "dtp") {
+				dtpSheet.classList.add("pb-surface");
+				return [{ el: dtpSheet, ox: dtpSheet.offsetWidth / 2, oy: dtpSheet.offsetHeight, corners: "top" }];
 			}
 			if (target === "loc") {
 				locPage.classList.add("pb-surface");
@@ -1914,7 +2206,8 @@
 				if (commit) {
 					surfaces.forEach(({ el }) => { el.style.opacity = "0"; });
 					setTimeout(() => {
-						if (target === "loc") closeLocPage({ instant: true });
+						if (target === "dtp") closeDtp({ instant: true });
+						else if (target === "loc") closeLocPage({ instant: true });
 						else collapseSearch(screen);
 						pbCleanup();
 					}, 180);
@@ -1936,6 +2229,8 @@
 			btn.addEventListener("click", () => {
 				const id = btn.getAttribute("data-switch");
 				locReturnInput = null;
+				dtpReturnInput = null;
+				closeDtp({ instant: true });
 				closeLocPage({ instant: true });
 				hideKb();
 				document.querySelectorAll(".screen").forEach((s) => {
