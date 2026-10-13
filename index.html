@@ -195,7 +195,7 @@
 		.dtp-wrap { gap: 8px; }
 		.loc-chip { display: none; font-family: inherit; line-height: inherit; color: var(--fg-default); cursor: pointer; max-width: 45%; }
 		.loc-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-		#v2[data-loc="chip"] .loc-chip { display: inline-flex; }
+		#v2[data-loc="chip"].expanded .loc-chip { display: inline-flex; }
 		#v2[data-loc="chip"] .location-row { display: none; }
 		#v2 .location-row { cursor: pointer; }
 
@@ -564,6 +564,15 @@
 		.phone.hide-top #v2.expanded .header {
 			padding-top: 12px;
 		}
+		/* Location chip option: with top content off, only the chip stays above the field */
+		.phone.hide-top #v2[data-loc="chip"].expanded .header { padding-top: 0; }
+		.phone.hide-top #v2[data-loc="chip"].expanded .dtp-wrap {
+			max-height: 64px;
+			padding: 4px 0 10px;
+			opacity: 1;
+			overflow: visible;
+		}
+		.phone.hide-top #v2[data-loc="chip"].expanded .dtp:not(.loc-chip) { display: none; }
 
 		.results {
 			display: none;
