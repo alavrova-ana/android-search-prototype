@@ -124,7 +124,6 @@
 		.pillrow { display: flex; gap: var(--padding-small); padding: var(--padding-xxsmall) var(--padding-medium); overflow: hidden; }
 		.pill { flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--padding-xsmall); height: 36px; padding: 0 var(--padding-medium-small); border: 1px solid var(--border-default); border-radius: var(--radius-rounded); background: var(--bg-default); font: 500 14px/20px var(--font-body); cursor: pointer; white-space: nowrap; }
 		.pill svg { width: 16px; height: 16px; }
-		.pill.on { border: 2px solid var(--fg-default); padding: 0 11px; }
 		.pill[data-open] { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0.5); animation: hint 2.4s ease-out 1s 2; }
 		@keyframes hint { 0% { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0.45); } 70% { box-shadow: 0 0 0 8px rgba(218, 55, 67, 0); } 100% { box-shadow: 0 0 0 0 rgba(218, 55, 67, 0); } }
 		.list { flex: 1; overflow: hidden; padding: var(--padding-small) var(--padding-medium) 0; }
@@ -194,19 +193,6 @@
 		.fee-row { display: flex; gap: 16px; padding: 8px 16px; font: 500 14px/20px var(--font-body); color: var(--fg-default); }
 		.fee-row span:first-child { flex: 1; }
 		.fees .ot-btn { margin-top: 32px; }
-
-		/* —— Filter pill: bottom_sheet_filter_select_multi.xml + filter_select_item.xml —— */
-		.flt { padding-bottom: 36px; }
-		.flt-head { display: flex; justify-content: space-between; align-items: baseline; margin: 36px 16px 0; }
-		.flt-head h2 { margin: 0; font: 700 18px/24px var(--font-brand); }
-		.flt-head button { border: none; background: none; padding: 0; color: var(--fg-link); font: 500 16px/20px var(--font-brand); cursor: pointer; }
-		.flt-list { margin: 4px 0 0 16px; padding-bottom: 24px; max-height: 520px; overflow-y: auto; }
-		.flt-item { height: 58px; display: flex; align-items: flex-start; cursor: pointer; }
-		.flt-item span { flex: 1; height: 50px; display: flex; align-items: center; margin-right: 16px; font: 400 16px/20px var(--font-body); color: var(--fg-alt); }
-		.flt-item i { flex: 0 0 48px; height: 58px; display: grid; place-items: center; }
-		.flt-item i::before { content: ""; width: 18px; height: 18px; border: 2px solid var(--fg-default); border-radius: 2px; box-sizing: border-box; }
-		.flt-item[aria-checked="true"] i::before { border-color: var(--fg-action); background: var(--fg-action) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='white' stroke-width='3' d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/14px no-repeat; }
-		.flt .ot-btn { margin: 0 16px; }
 
 		/* —— Loyalty enrollment: LoyaltyEnrollmentModalScreen + LoyaltyEnrollmentContent —— */
 		.loy-close { display: flex; justify-content: flex-end; padding: 6px 6px 0 0; }
@@ -283,7 +269,6 @@
 		const SHEETS = {
 			dtp: { title: "Date, time and party picker", source: "BottomSheetDTPFragment", host: "search", legacy: "design", legacyRadius: 8 },
 			service_fees: { title: "Service fees", source: "BottomSheetServiceFeesFragment", host: "checkout", legacy: "design", legacyRadius: 8 },
-			pill_filter: { title: "Search filter pill (Cuisine)", source: "PillFilterBottomSheetDialog", host: "search", legacy: "mtrl", legacyRadius: 0 },
 			loyalty_enrollment: { title: "Loyalty enrollment", source: "LoyaltyEnrollmentModalBottomSheetFragment", host: "home", legacy: "mtrl", legacyRadius: 8 },
 		};
 		const SHEET_IDS = Object.keys(SHEETS);
@@ -298,7 +283,6 @@
 		const log = (msg) => { logEl.textContent += msg + "\n"; };
 
 		// —— Shared sample data (matches M3SheetPreviewActivity) ——
-		const CUISINES = ["American", "Italian", "Steakhouse", "Seafood", "Mexican", "Japanese", "French", "Indian"];
 		const FEES = [
 			["Restaurant experience fees", "$36.00"],
 			["Add-ons (5%)", "$9.00"],
@@ -360,7 +344,7 @@
 					<div class="pillrow"><button type="button" class="pill" data-open="dtp">${ICON.person}<span data-role="dtp-label">${dtpPillText(st.dtp)}</span></button></div>
 					<div class="pillrow">
 						<button type="button" class="pill" aria-label="All filters">${ICON.tune}</button>
-						<button type="button" class="pill${st.cuisines.length ? " on" : ""}" data-open="pill_filter" data-role="cuisine-pill">Cuisine${ICON.down}</button>
+						<button type="button" class="pill">Cuisine${ICON.down}</button>
 						<button type="button" class="pill">Price${ICON.down}</button>
 						<button type="button" class="pill">Neighborhoods${ICON.down}</button>
 					</div>
@@ -500,31 +484,6 @@
 				return { el };
 			},
 
-			pill_filter(phone) {
-				// sortFiltersBySelected: selected first
-				const selected = new Set(phone.state.cuisines);
-				const sorted = [...CUISINES.filter((c) => selected.has(c)), ...CUISINES.filter((c) => !selected.has(c))];
-				const el = document.createElement("div");
-				el.className = "flt";
-				el.innerHTML = `
-					<div class="flt-head"><h2>Cuisine</h2><button type="button" data-role="clear">Clear all</button></div>
-					<div class="flt-list" data-nodrag>${sorted.map((c) => `<div class="flt-item" role="checkbox" tabindex="0" aria-checked="${selected.has(c)}" data-value="${c}"><span>${c}</span><i></i></div>`).join("")}</div>
-					<button type="button" class="ot-btn primary" data-role="apply">Apply</button>`;
-				el.querySelector(".flt-list").addEventListener("click", (e) => {
-					const item = e.target.closest(".flt-item");
-					if (item) item.setAttribute("aria-checked", String(item.getAttribute("aria-checked") !== "true"));
-				});
-				el.querySelector("[data-role=clear]").addEventListener("click", () => {
-					el.querySelectorAll(".flt-item").forEach((i) => i.setAttribute("aria-checked", "false"));
-				});
-				el.querySelector("[data-role=apply]").addEventListener("click", () => {
-					phone.state.cuisines = [...el.querySelectorAll('.flt-item[aria-checked="true"]')].map((i) => i.dataset.value);
-					phone.host.querySelector("[data-role=cuisine-pill]")?.classList.toggle("on", phone.state.cuisines.length > 0);
-					phone.close();
-				});
-				return { el };
-			},
-
 			loyalty_enrollment(phone) {
 				const el = document.createElement("div");
 				el.innerHTML = `
@@ -572,7 +531,7 @@
 			constructor(root, index) {
 				this.root = root;
 				this.index = index;
-				this.state = { dtp: { party: 2, day: 0, slot: 38 }, cuisines: ["Italian"] };
+				this.state = { dtp: { party: 2, day: 0, slot: 38 } };
 				this.current = null;
 				root.innerHTML = `
 					<div class="statusbar"><span>9:41</span><span style="display:flex;gap:4px">${ICON.wifi}${ICON.battery}</span></div>
