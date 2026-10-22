@@ -674,6 +674,18 @@
 		.phone.hide-top #v2.expanded .header {
 			padding-top: 12px;
 		}
+		/* Option 1 field: the pill hides on tap while the field slides up into its place */
+		#v2 .search-field { z-index: 1; }
+		#v2 .dtp-wrap { transition: max-height 320ms cubic-bezier(0.2, 0, 0, 1), padding 320ms cubic-bezier(0.2, 0, 0, 1), margin 320ms cubic-bezier(0.2, 0, 0, 1), opacity 160ms ease; }
+		.phone.hide-top #v2:not([data-loc="chip"]).expanded .header { padding-top: 0; }
+		.phone.hide-top #v2:not([data-loc="chip"]).expanded .dtp-wrap {
+			max-height: 64px;
+			padding: 4px 0 10px;
+			margin-bottom: -36px;
+			overflow: visible;
+			opacity: 0;
+			transition: margin 320ms cubic-bezier(0.2, 0, 0, 1);
+		}
 		/* Location chip option: with top content off, only the chip stays above the field */
 		.phone.hide-top #v2[data-loc="chip"].expanded .header { padding-top: 0; }
 		.phone.hide-top #v2[data-loc="chip"].expanded .dtp-wrap {
