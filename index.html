@@ -18,6 +18,8 @@
 			--fg-accent-blue: #4a6fde;
 			--bg-default: #ffffff;
 			--bg-inset: #f1f2f4;
+			--fg-success: #2f864d;
+			--bg-success-alt: #f0faf3;
 			--border-default: #d8d9db;
 			--pad-sm: 8px;   /* rhythm48_regular_gutter */
 			--pad-md: 12px;  /* rhythm48_medium_gutter */
@@ -1031,6 +1033,7 @@
 		}
 		.ctl-option .t { display: block; font-size: 14px; font-weight: 600; color: var(--fg-default); }
 		.ctl-option .n { display: block; font-size: 12px; color: var(--fg-alt); margin-top: 2px; }
+		.status-pill { margin-left: auto; flex: 0 0 auto; padding: 2px 8px; border: 1px solid var(--fg-success); border-radius: 999px; background: var(--bg-success-alt); color: var(--fg-success); font-size: 12px; font-weight: 600; line-height: 16px; }
 		.ctl-toggle {
 			display: flex;
 			align-items: center;
@@ -1096,6 +1099,8 @@
 		.ctl-choice b { font-weight: 600; color: var(--fg-default); margin-right: 4px; }
 		.ctl-choice em { font-style: normal; font-size: 10px; font-weight: 600; color: var(--fg-alt); border: 1px solid var(--border-default); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
 		.ctl-choice:hover { border-color: var(--fg-alt); }
+		.ctl-choice:has(.status-pill) { display: flex; align-items: center; }
+		.ctl-choice .status-pill { font-size: 10px; line-height: 14px; padding: 0 6px; }
 		.ctl-choice[aria-checked="true"] { border-color: var(--fg-default); box-shadow: inset 0 0 0 1px var(--fg-default); }
 
 		.ctl-note { font-size: 12px; color: var(--fg-alt); margin-top: -4px; }
@@ -1320,17 +1325,18 @@
 				<button type="button" class="ctl-option" role="radio" aria-checked="false" data-switch="v2">
 					<span class="radio" aria-hidden="true"></span>
 					<span><span class="t">Expressive field</span><span class="n">Option 1</span></span>
+					<span class="status-pill">Selected</span>
 				</button>
 				<div class="ctl-sub" data-sub-for="v2" hidden>
 					<div class="ctl-sub-group" role="radiogroup" aria-label="Field size">
 						<div class="ctl-sub-label">Field size <span>default → active margins</span></div>
-						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-size="1"><b>Size 1</b> 24 → 12dp <em>M3</em></button>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-size="1"><b>Size 1</b> 24 → 12dp <em>M3</em><span class="status-pill">Selected</span></button>
 						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-size="2"><b>Size 2</b> 16 → 16dp</button>
 						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-size="3"><b>Size 3</b> 16 → 12dp</button>
 					</div>
 					<div class="ctl-sub-group" role="radiogroup" aria-label="Location search">
 						<div class="ctl-sub-label">Location search</div>
-						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-loc="field"><b>Separate field</b> below the search field</button>						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-loc="chip"><b>Location chip</b> next to the date pill</button>
+						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-loc="field"><span><b>Separate field</b> below the search field</span><span class="status-pill">Selected</span></button>						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-loc="chip"><b>Location chip</b> next to the date pill</button>
 					</div>
 				</div>
 				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v1">
