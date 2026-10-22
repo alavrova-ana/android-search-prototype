@@ -683,6 +683,9 @@
 			overflow: visible;
 		}
 		.phone.hide-top #v2[data-loc="chip"].expanded .dtp:not(.loc-chip) { display: none; }
+		/* White space: the pill row keeps its height, so the field stays where the DTP layout puts it */
+		.phone.top-space .screen.expanded .dtp:not(.loc-chip) { visibility: hidden; }
+		.phone.top-space #v2[data-loc="chip"].expanded .dtp:not(.loc-chip) { display: none; }
 
 		.results {
 			display: none;
@@ -1083,6 +1086,21 @@
 		.ctl-choice:hover { border-color: var(--fg-alt); }
 		.ctl-choice[aria-checked="true"] { border-color: var(--fg-default); box-shadow: inset 0 0 0 1px var(--fg-default); }
 
+		.ctl-note { font-size: 12px; color: var(--fg-alt); margin-top: -4px; }
+		.ctl-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+		.ctl-pill {
+			padding: 6px 12px;
+			border: 1px solid var(--border-default);
+			border-radius: 999px;
+			background: var(--bg-default);
+			font: 600 12px/16px var(--font);
+			color: var(--fg-default);
+			cursor: pointer;
+		}
+		.ctl-pill:hover { border-color: var(--fg-alt); }
+		.ctl-pill[aria-checked="true"] { background: var(--fg-default); border-color: var(--fg-default); color: #fff; }
+		.ctl-pill:focus-visible { outline: 2px solid var(--fg-accent-blue); outline-offset: 2px; }
+
 		/* Page element toggles */
 		.hint {
 			margin: 0;
@@ -1309,11 +1327,13 @@
 				</button>
 			</div>
 			<div class="ctl-group">
-				<div class="ctl-label">Page elements</div>
-				<label class="ctl-toggle">
-					<span>Top content<span class="n">Date, time &amp; party pill on focused search</span></span>
-					<button type="button" class="switch" role="switch" aria-checked="true" data-toggle="hide-top" aria-label="Top content"></button>
-				</label>
+				<div class="ctl-label">Top content</div>
+				<div class="ctl-note">Above the search field on focused search</div>
+				<div class="ctl-pills" role="radiogroup" aria-label="Top content">
+					<button type="button" class="ctl-pill" role="radio" aria-checked="true" data-top="dtp">DTP pill</button>
+					<button type="button" class="ctl-pill" role="radio" aria-checked="false" data-top="none">No content</button>
+					<button type="button" class="ctl-pill" role="radio" aria-checked="false" data-top="space">White space</button>
+				</div>
 			</div>
 		</div>
 		<p class="hint">
@@ -2275,12 +2295,14 @@
 			});
 		});
 
-		// Each switch hides a page element by toggling a class on the device when turned off
-		document.querySelectorAll(".switch[data-toggle]").forEach((sw) => {
-			sw.addEventListener("click", () => {
-				const on = sw.getAttribute("aria-checked") !== "true";
-				sw.setAttribute("aria-checked", String(on));
-				phone.classList.toggle(sw.dataset.toggle, !on);
+		// Top content above the focused search field: DTP pill, none (field moves up) or white space (field stays)
+		const topPills = document.querySelectorAll(".ctl-pill[data-top]");
+		topPills.forEach((pill) => {
+			pill.addEventListener("click", () => {
+				const mode = pill.dataset.top;
+				topPills.forEach((p) => p.setAttribute("aria-checked", String(p === pill)));
+				phone.classList.toggle("hide-top", mode === "none");
+				phone.classList.toggle("top-space", mode === "space");
 			});
 		});
 
