@@ -1156,7 +1156,7 @@
 		</div>
 
 		<!-- ========== VARIANT 1: M3 map field (contained expressive) ========== -->
-		<section class="screen active" id="v1" data-variant="v1" data-transition="container">
+		<section class="screen" id="v1" data-variant="v1" data-transition="container">
 			<div class="map-layer">
 				<iframe src="https://maps.google.com/maps?ll=37.3894,-122.0819&amp;z=13&amp;output=embed" referrerpolicy="no-referrer-when-downgrade" title="Google Map" tabindex="-1"></iframe>
 				<span class="map-pin me" style="left:62%;top:48%"></span>
@@ -1221,7 +1221,7 @@
 		</section>
 
 		<!-- ========== VARIANT 2: M3 outlined expand (divided query + location) ========== -->
-		<section class="screen" id="v2" data-variant="v2">
+		<section class="screen active" id="v2" data-variant="v2">
 			<div class="map-layer">
 				<iframe src="https://maps.google.com/maps?ll=37.3894,-122.0819&amp;z=13&amp;output=embed" referrerpolicy="no-referrer-when-downgrade" title="Google Map" tabindex="-1"></iframe>
 				<span class="map-pin me" style="left:62%;top:48%"></span>
@@ -1322,7 +1322,7 @@
 		<div class="controls">
 			<div class="ctl-group" role="radiogroup" aria-label="Search field">
 				<div class="ctl-label">Search field</div>
-				<button type="button" class="ctl-option" role="radio" aria-checked="false" data-switch="v2">
+				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v2">
 					<span class="radio" aria-hidden="true"></span>
 					<span><span class="t">Expressive field</span><span class="n">Option 1</span></span>
 					<span class="status-pill">Approved</span>
@@ -1339,7 +1339,7 @@
 						<button type="button" class="ctl-choice" role="radio" aria-checked="true" data-loc="field"><span><b>Separate field</b> below the search field</span><span class="status-pill">Approved</span></button>						<button type="button" class="ctl-choice" role="radio" aria-checked="false" data-loc="chip"><b>Location chip</b> next to the date pill</button>
 					</div>
 				</div>
-				<button type="button" class="ctl-option" role="radio" aria-checked="true" data-switch="v1">
+				<button type="button" class="ctl-option" role="radio" aria-checked="false" data-switch="v1">
 					<span class="radio" aria-hidden="true"></span>
 					<span><span class="t">Divided (baseline) search</span><span class="n">Option 2</span></span>
 				</button>
